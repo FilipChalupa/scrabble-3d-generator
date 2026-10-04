@@ -3,7 +3,7 @@
 Mini webová aplikace, která generuje kameny do hry Scrabble jako 3D modely pro tisk na 3D tiskárně.
 Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potřeba.
 
-**👉 https://filipchalupa.github.io/scrabble-3d-generator/**
+**👉 https://filipchalupa.cz/scrabble-3d-generator/**
 
 ## Co umí
 
