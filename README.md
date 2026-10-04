@@ -26,6 +26,15 @@ Soubor `3MF` obsahuje jeden objekt složený ze dvou dílů (*Kámen* a *Písmen
 Po otevření v PrusaSliceru, Bambu Studiu nebo OrcaSliceru stačí dílům přiřadit filamenty.
 Alternativně lze načíst `*-kamen.stl` a `*-pismena.stl` současně a potvrdit načtení jako jeden objekt s více díly.
 
+### Na jednobarevné tiskárně
+
+Použijte provedení **vystouplá**: kámen se tiskne do své tloušťky (výchozí 4 mm) a nad ní už jsou jen písmena.
+Ve sliceru přidejte výměnu filamentu ve výšce první vrstvy nad tloušťkou kamene
+(PrusaSlicer: „+“ u posuvníku vrstev, Bambu/Orca: pravým tlačítkem „Add pause / filament change“).
+
+Provedení **zapuštěná v rovině** jednobarevně vytisknout nejde – písmena i kámen sdílejí stejné vrstvy,
+takže výměna filamentu by obarvila celý povrch. Provedení **vyrytá** je jednobarevné, prohlubně lze případně zatřít barvou.
+
 Hloubku / výšku písmen volte jako násobek výšky vrstvy (např. 0,6 mm = 3 × 0,2 mm).
 
 ## Vývoj

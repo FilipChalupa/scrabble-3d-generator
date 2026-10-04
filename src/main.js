@@ -507,9 +507,9 @@ const HINTS = {
 	engraved:
 		'Vyrytá písmena se tisknou v jedné barvě. Hloubku volte jako násobek výšky vrstvy; pro kontrast lze prohlubně po tisku zatřít barvou.',
 	inlay:
-		'Ve 3MF je kámen a písmena jako dva díly jednoho objektu – ve sliceru jim přiřaďte různé filamenty. S volbou „lícem dolů“ bude líc dokonale hladký.',
+		'Vyžaduje vícebarevnou tiskárnu (AMS, MMU…), protože kámen i písmena leží ve stejných vrstvách. Ve 3MF jsou to dva díly jednoho objektu – ve sliceru jim přiřaďte různé filamenty. S volbou „lícem dolů“ bude líc dokonale hladký.',
 	raised:
-		'Vystouplá písmena: STL je jeden díl, ve 3MF jsou písmena samostatný díl, takže je můžete tisknout jinou barvou.',
+		'Dvě barvy i na jednobarevné tiskárně: stačí STL a ve sliceru přidat výměnu filamentu (M600 / pauzu) ve výšce tloušťky kamene – nad ní se tisknou už jen písmena. Ve 3MF jsou písmena samostatný díl pro vícebarevné tiskárny.',
 }
 
 function redraw() {
