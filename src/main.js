@@ -5,7 +5,7 @@ import { layoutTile, buildTile } from './geometry.js'
 import { placeTris, concatTris, toSTL, to3MF, zip } from './export.js'
 import { PRESETS, FONTS, BEDS, parseTiles } from './presets.js'
 
-const STORAGE_KEY = 'scrabble3d:v3'
+const STORAGE_KEY = 'scrabble3d:v4'
 const EDGE_MARGIN = 0.5
 const BED_MARGIN = 5
 
@@ -86,6 +86,14 @@ const GROUPS = [
 		],
 	},
 	{
+		title: 'Značka na spodku',
+		fields: [
+			{ id: 'markText', type: 'text', label: 'Text nebo symbol', help: 'Např. iniciály nebo ★ – odliší kameny různých sad. Prázdné = bez značky.', def: '' },
+			{ id: 'markSize', type: 'number', label: 'Velikost', unit: '%', min: 10, max: 60, step: 1, def: 30, when: (s) => s.markText.trim() },
+			{ id: 'markDepth', type: 'number', label: 'Hloubka', unit: 'mm', min: 0.1, max: 2, step: 0.04, def: 0.4, when: (s) => s.markText.trim() },
+		],
+	},
+	{
 		title: 'Tisk',
 		fields: [
 			{
@@ -97,6 +105,7 @@ const GROUPS = [
 			},
 			{ id: 'bedX', type: 'number', label: 'Podložka X', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
 			{ id: 'bedY', type: 'number', label: 'Podložka Y', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
+			{ id: 'layerHeight', type: 'number', label: 'Výška vrstvy', unit: 'mm', min: 0.04, max: 0.4, step: 0.02, def: 0.2 },
 			{ id: 'gap', type: 'number', label: 'Mezera mezi kameny', unit: 'mm', min: 0.5, max: 20, step: 0.5, def: 3 },
 			{ id: 'faceDown', type: 'checkbox', label: 'Tisknout lícem dolů', def: false, when: (s) => s.style !== 'raised' },
 			{ id: 'bodyColor', type: 'color', label: 'Barva kamene', def: '#f1e3c4' },
@@ -137,7 +146,7 @@ const effectiveFaceDown = () => settings.faceDown && settings.style !== 'raised'
 
 function geometryParams() {
 	const p = {}
-	for (const k of ['size', 'thickness', 'radius', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments']) {
+	for (const k of ['size', 'thickness', 'radius', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments', 'markText', 'markDepth']) {
 		p[k] = settings[k]
 	}
 	for (const k of PERCENT) p[k] = settings[k] / 100
@@ -504,20 +513,67 @@ function renderSummary() {
 	sel.hidden = view !== 'plate' || n < 2
 }
 
-const HINTS = {
-	engraved:
-		'Vyrytá písmena se tisknou v jedné barvě. Hloubku volte jako násobek výšky vrstvy; pro kontrast lze prohlubně po tisku zatřít barvou.',
-	inlay:
-		'Vyžaduje vícebarevnou tiskárnu (AMS, MMU…), protože kámen i písmena leží ve stejných vrstvách. Ve 3MF jsou to dva díly jednoho objektu – ve sliceru jim přiřaďte různé filamenty. S volbou „lícem dolů“ bude líc dokonale hladký.',
-	raised:
-		'Dvě barvy i na jednobarevné tiskárně: stačí STL a ve sliceru přidat výměnu filamentu (M600 / pauzu) ve výšce tloušťky kamene – nad ní se tisknou už jen písmena. Ve 3MF jsou písmena samostatný díl pro vícebarevné tiskárny.',
+const mm = (v) => `${+v.toFixed(2)} mm`.replace('.', ',')
+
+// Doporučení pro slicer podle zvoleného provedení a rozměrů.
+function slicerTips() {
+	const lh = settings.layerHeight
+	const T = settings.thickness
+	const faceDown = effectiveFaceDown()
+	const tips = []
+	const warn = (text) => tips.push({ text, warn: true })
+	const tip = (text) => tips.push({ text })
+
+	if (settings.style === 'engraved') {
+		tip('Vyrytá písmena se tisknou v jedné barvě. Pro kontrast lze prohlubně po tisku zatřít barvou nebo voskovkou.')
+	} else if (settings.style === 'inlay') {
+		tip('Zapuštěná písmena vyžadují vícebarevnou tiskárnu (AMS, MMU…) – kámen i písmena leží ve stejných vrstvách. Otevřete 3MF a dílům „Kámen“ a „Písmena“ přiřaďte různé filamenty.')
+	} else {
+		const layer = Math.round(T / lh) + 1
+		tip(
+			`Dvě barvy i na jednobarevné tiskárně: ve sliceru vložte výměnu filamentu (M600 / pauzu) na vrstvu ${layer} ve výšce ${mm(T + lh)} – nad tloušťkou kamene ${mm(T)} se tisknou už jen písmena. Pro vícebarevné tiskárny je ve 3MF samostatný díl „Písmena“.`,
+		)
+	}
+
+	if (faceDown) {
+		tip('Tiskne se lícem dolů: líc převezme povrch podložky (hladká PEI = lesk, texturovaná = mat). Zapněte kompenzaci rozlití první vrstvy (elephant foot), ať písmena zůstanou ostrá.')
+	} else if (settings.style !== 'raised') {
+		tip('Tiskne se lícem nahoru: pro hladký povrch zapněte žehlení (ironing) horní vrstvy.')
+	}
+
+	const checks = [['Tloušťka kamene', T]]
+	if (settings.style === 'raised') checks.push(['Výška písmen', settings.height])
+	else checks.push(['Hloubka písmen', settings.depth])
+	if (settings.markText.trim()) checks.push(['Hloubka značky', settings.markDepth])
+	for (const [label, v] of checks) {
+		const layers = v / lh
+		if (Math.abs(layers - Math.round(layers)) > 0.01) {
+			warn(`${label} ${mm(v)} není násobkem výšky vrstvy ${mm(lh)} – doporučuji ${mm(Math.max(1, Math.round(layers)) * lh)}.`)
+		}
+	}
+
+	if (settings.markText.trim() && !faceDown) {
+		tip('Značka na spodku leží na podložce a tiskne se jako krátké přemostění – stačí mělká (1–2 vrstvy) a jednoduchý tvar.')
+	}
+	return tips
+}
+
+function renderTips() {
+	document.getElementById('hint').replaceChildren(
+		...slicerTips().map((t) => {
+			const li = document.createElement('li')
+			li.textContent = t.text
+			if (t.warn) li.className = 'warn'
+			return li
+		}),
+	)
 }
 
 function redraw() {
 	if (!font) return
 	bodyMat.color.set(settings.bodyColor)
 	accentMat.color.set(settings.letterColor)
-	document.getElementById('hint').textContent = HINTS[settings.style]
+	renderTips()
 	clearContent()
 	try {
 		if (view === 'tile') {

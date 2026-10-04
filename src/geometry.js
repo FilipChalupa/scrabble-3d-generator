@@ -186,6 +186,19 @@ export function layoutTile(font, letter, value, p) {
 		}
 	}
 
+	// Značka na spodku – zrcadlená, aby se při pohledu zespodu četla správně.
+	const mark = (p.markText || '').trim()
+	if (mark) {
+		const c = textContours(font, mark, (p.markSize * s) / cap, p.curveSegments)
+		if (c.length) {
+			const bb = bounds(c)
+			const k = Math.min(1, (0.8 * s) / (bb.maxX - bb.minX))
+			const cx = ((bb.minX + bb.maxX) / 2) * k
+			const cy = ((bb.minY + bb.maxY) / 2) * k
+			out.mark = c.map((ring) => ring.map(([x, y]) => [-(x * k - cx), y * k - cy]))
+		}
+	}
+
 	return out
 }
 
@@ -310,23 +323,40 @@ export function buildTile(layout, p) {
 	const clip = roundedRect(p.size - 2 * p.edgeMargin, Math.max(0, p.radius - p.edgeMargin))
 	const { letters, rest } = regions(outline, layout, clip)
 	const outlinePoly = [{ outer: outline, holes: [] }]
+	const markDepth = Math.min(p.markDepth ?? 0.4, (p.style === 'raised' ? T : T - d) - 0.6)
+	const mark = layout.mark?.length && markDepth > 0.05 ? regions(outline, { letter: layout.mark, value: [] }, clip) : null
+
+	// Spodní strana kamene, případně s vyrytou značkou.
+	const bottom = (out) => {
+		if (!mark) return cap(out, outlinePoly, 0, false)
+		cap(out, mark.rest, 0, false)
+		mark.rest.forEach((r, i) => {
+			if (i > 0) walls(out, r.outer, 0, markDepth)
+			for (const h of r.holes) walls(out, h, 0, markDepth)
+		})
+		cap(out, mark.letters, markDepth, false)
+	}
 	// První oblast doplňku je samotný obrys kamene – jeho stěny tvoří vnější plášť.
 	const restInner = rest.map((r, i) => (i === 0 ? { outer: null, holes: r.holes } : r))
 
 	const body = []
 	const accent = []
-	cap(body, outlinePoly, 0, false)
+	bottom(body)
 	walls(body, outline, 0, T)
 	cap(body, rest, T, true)
 
 	if (p.style === 'raised') {
 		polyWalls(accent, letters, T, T + p.height)
 		cap(accent, letters, T + p.height, true)
+		const slab = []
+		bottom(slab)
+		walls(slab, outline, 0, T)
+		cap(slab, outlinePoly, T, true)
 		return {
 			body,
 			accent,
 			height: letters.length ? T + p.height : T,
-			parts: { body: extrude(outlinePoly, 0, T), letters: letters.length ? extrude(letters, T, T + p.height) : [] },
+			parts: { body: slab, letters: letters.length ? extrude(letters, T, T + p.height) : [] },
 		}
 	}
 

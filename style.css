@@ -406,10 +406,26 @@ button:focus-visible {
 	text-decoration: underline;
 }
 
-.hint {
+.tips-title {
+	font-size: 1rem;
+	margin: 24px 0 8px;
+}
+
+.tips {
 	color: var(--muted);
 	font-size: 0.9rem;
-	max-width: 70ch;
+	max-width: 75ch;
+	margin: 0;
+	padding-left: 20px;
+}
+
+.tips li {
+	margin: 4px 0;
+}
+
+.tips li.warn {
+	color: var(--accent);
+	font-weight: 600;
 }
 
 @media (max-width: 860px) {
