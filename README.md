@@ -5,6 +5,8 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
 
 **👉 https://filipchalupa.cz/scrabble-3d-generator/**
 
+![Náhled aplikace](docs/screenshot.png)
+
 ## Co umí
 
 - předvolby rozložení písmen pro **češtinu**, **slovenštinu**, **němčinu**, **polštinu** a **angličtinu** (podle [Wikipedie](https://en.wikipedia.org/wiki/Scrabble_letter_distributions)), nebo vlastní seznam (`písmeno body počet`, `_` = žolík)
@@ -16,9 +18,10 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
 - volitelná nula na žolíku, aby byl poznat vršek kamene
 - značka vyrytá na spodku kamene (iniciály, symbol) pro odlišení sad
 - tipy pro slicer: kam vložit výměnu filamentu, žehlení, kontrola násobků výšky vrstvy
-- přibalené fonty s českou diakritikou (DejaVu, Liberation) nebo vlastní TTF/OTF
+- přibalené fonty s diakritikou (DejaVu, Liberation) nebo vlastní TTF/OTF/WOFF (zapamatuje se)
+- upozornění na znaky, které font neobsahuje, a na písmena přesahující okraj kamene
 - rozmístění kamenů na podložky podle tiskárny (Bambu Lab, Prusa, Creality, vlastní rozměr)
-- volitelný tisk lícem dolů (hladký líc z texturované / hladké podložky)
+- volitelný tisk lícem dolů (hladký líc z texturované / hladké podložky), náhled jde otočit a ukázat spodek
 - export:
   - jednotlivý kámen nebo celá sada v ZIPu
   - `STL` (jeden uzavřený díl) a `3MF` s kamenem a písmeny jako dvěma díly v barvách
@@ -65,7 +68,8 @@ Knihovny ([three.js](https://threejs.org/), [opentype.js](https://opentype.js.or
 - `src/geometry.js` – převod glyfů na obrysy, sjednocení a vytažení do uzavřené 3D sítě
 - `src/export.js` – zápis binárního STL a 3MF
 - `src/presets.js` – rozložení písmen, fonty, tiskárny
-- `src/main.js` – formulář, 3D náhled, rozmístění na podložky a export
+- `src/worker.js` – Web Worker, který staví kameny a exportuje mimo hlavní vlákno
+- `src/main.js` – formulář, 3D náhled a rozmístění na podložky
 
 ## Licence
 
