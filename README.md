@@ -23,6 +23,11 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
   - jednotlivý kámen nebo celá sada v ZIPu
   - `STL` (jeden uzavřený díl) a `3MF` s kamenem a písmeny jako dvěma díly v barvách
 
+## Instalace (PWA)
+
+Web jde nainstalovat jako aplikace (Chrome / Edge: ikona v adresním řádku, Android: „Přidat na plochu“).
+Funguje jen online – bez připojení se zobrazí omluvná stránka.
+
 ## Vícebarevný tisk
 
 Soubor `3MF` obsahuje jeden objekt složený ze dvou dílů (*Kámen* a *Písmena*).

@@ -5,7 +5,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Scrabble 3D generátor</title>
 		<meta name="description" content="Generátor kamenů do hry Scrabble pro 3D tisk – STL a 3MF přímo v prohlížeči." />
-		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='6' y='6' width='88' height='88' rx='14' fill='%23f1e3c4' stroke='%23a8875a' stroke-width='5'/><text x='44' y='72' font-family='sans-serif' font-weight='bold' font-size='62' text-anchor='middle' fill='%232b2117'>Ř</text><text x='82' y='86' font-family='sans-serif' font-weight='bold' font-size='22' text-anchor='end' fill='%232b2117'>4</text></svg>" />
+		<link rel="icon" href="icons/icon.svg" />
+		<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+		<link rel="manifest" href="manifest.webmanifest" />
+		<meta name="theme-color" content="#f6f2ea" />
 		<link rel="stylesheet" href="style.css" />
 		<script type="importmap">
 			{
@@ -18,7 +21,14 @@
 				}
 			}
 		</script>
-		<script type="module" src="src/main.js"></script>
+		<script
+			type="module"
+			src="src/main.js"
+			onerror="document.getElementById('status').textContent = 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.'"
+		></script>
+		<script>
+			if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js')
+		</script>
 	</head>
 	<body>
 		<header class="topbar">

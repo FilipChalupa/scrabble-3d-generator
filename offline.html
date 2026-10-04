@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="cs">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Scrabble 3D generátor – offline</title>
+		<link rel="icon" href="icons/icon.svg" />
+		<style>
+			:root {
+				--bg: #f6f2ea;
+				--text: #2b2117;
+				--muted: #7a6d5d;
+				--accent: #b5562b;
+				--accent-text: #fff;
+				color-scheme: light;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					--bg: #1b1814;
+					--text: #f1e8da;
+					--muted: #a99b88;
+					--accent: #e07a45;
+					--accent-text: #1b1814;
+					color-scheme: dark;
+				}
+			}
+			html,
+			body {
+				margin: 0;
+				min-height: 100%;
+				background: var(--bg);
+				color: var(--text);
+				font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+			}
+			main {
+				min-height: 100vh;
+				display: grid;
+				place-content: center;
+				justify-items: center;
+				text-align: center;
+				padding: 24px 16px;
+				gap: 8px;
+			}
+			img {
+				width: 96px;
+				height: 96px;
+				margin-bottom: 8px;
+			}
+			h1 {
+				font-size: 1.4rem;
+				margin: 0;
+			}
+			p {
+				color: var(--muted);
+				max-width: 42ch;
+				margin: 0 0 12px;
+			}
+			button {
+				font: inherit;
+				font-weight: 600;
+				padding: 10px 18px;
+				border-radius: 8px;
+				border: 0;
+				background: var(--accent);
+				color: var(--accent-text);
+				cursor: pointer;
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<img src="icons/icon.svg" alt="" />
+			<h1>Omlouváme se, jste offline</h1>
+			<p>Scrabble 3D generátor funguje jen s připojením k internetu – knihovny pro 3D náhled a export se stahují online. Jakmile budete zase připojeni, stránka se načte sama.</p>
+			<button type="button" onclick="location.reload()">Zkusit znovu</button>
+		</main>
+		<script>
+			addEventListener('online', () => location.reload())
+		</script>
+	</body>
+</html>
