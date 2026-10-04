@@ -326,6 +326,8 @@ function getTile(letter, value) {
 			parts: built.parts && { body: f(built.parts.body), letters: f(built.parts.letters) },
 		}
 		t.single = concatTris([t.body, t.accent])
+		// Zapuštěná písmena v náhledu vyplňují prohlubně, jako po vícebarevném tisku.
+		t.preview = p.style === 'inlay' ? { body: t.parts.body, accent: t.parts.letters } : { body: t.body, accent: t.accent }
 		tileCache.set(k, t)
 	}
 	return t
@@ -389,7 +391,7 @@ rim.position.set(60, 80, 40)
 scene.add(rim)
 
 const bodyMat = new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0 })
-const accentMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0 })
+const accentMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1 })
 const content = new THREE.Group()
 scene.add(content)
 
@@ -401,7 +403,7 @@ function trisToGeometry(tris) {
 }
 
 function tileGeometry(t) {
-	if (!t.geo) t.geo = { body: trisToGeometry(t.body), accent: trisToGeometry(t.accent) }
+	if (!t.geo) t.geo = { body: trisToGeometry(t.preview.body), accent: trisToGeometry(t.preview.accent) }
 	return t.geo
 }
 
