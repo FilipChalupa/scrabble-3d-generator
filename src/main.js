@@ -5,7 +5,7 @@ import { layoutTile, buildTile } from './geometry.js'
 import { placeTris, concatTris, toSTL, to3MF, zip } from './export.js'
 import { PRESETS, FONTS, BEDS, parseTiles } from './presets.js'
 
-const STORAGE_KEY = 'scrabble3d:v2'
+const STORAGE_KEY = 'scrabble3d:v3'
 const EDGE_MARGIN = 0.5
 const BED_MARGIN = 5
 
@@ -73,7 +73,7 @@ const GROUPS = [
 			{ id: 'letterSize', type: 'number', label: 'Výška verzálky', unit: '%', min: 15, max: 80, step: 1, def: 45 },
 			{ id: 'letterMaxWidth', type: 'number', label: 'Max. šířka', unit: '%', min: 20, max: 95, step: 1, def: 58 },
 			{ id: 'letterOffsetX', type: 'number', label: 'Posun vodorovně', unit: '%', min: -30, max: 30, step: 1, def: 0 },
-			{ id: 'letterOffsetY', type: 'number', label: 'Posun svisle', unit: '%', min: -30, max: 30, step: 1, def: 0 },
+			{ id: 'letterOffsetY', type: 'number', label: 'Posun svisle', unit: '%', min: -30, max: 30, step: 1, def: 3 },
 		],
 	},
 	{
