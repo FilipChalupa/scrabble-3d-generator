@@ -1,8 +1,5 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import opentype from 'opentype.js'
-import { layoutTile, buildTile } from './geometry.js'
-import { placeTris, concatTris, toSTL, to3MF, zip } from './export.js'
 import { PRESETS, FONTS, BEDS, parseTiles } from './presets.js'
 
 const STORAGE_KEY = 'scrabble3d:v4'
@@ -45,10 +42,10 @@ const GROUPS = [
 				id: 'font',
 				type: 'select',
 				label: 'Font',
-				options: { ...Object.fromEntries(FONTS.map((f) => [f.id, f.name])), custom: 'Vlastní soubor…' },
+				options: Object.fromEntries(FONTS.map((f) => [f.id, f.name])),
 				def: FONTS[0].id,
 			},
-			{ id: 'fontFile', type: 'file', label: 'Vlastní font (TTF / OTF)', accept: '.ttf,.otf,.woff' },
+			{ id: 'fontFile', type: 'file', label: 'Nahrát vlastní font (TTF / OTF / WOFF)', accept: '.ttf,.otf,.woff' },
 		],
 	},
 	{
@@ -124,7 +121,6 @@ function loadSettings() {
 		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
 		for (const k of Object.keys(s)) if (k in saved) s[k] = saved[k]
 	} catch {}
-	if (s.font === 'custom') s.font = FONTS[0].id
 	return s
 }
 
@@ -143,6 +139,7 @@ function bedSize() {
 }
 
 const effectiveFaceDown = () => settings.faceDown && settings.style !== 'raised'
+const hasMark = () => settings.markText.trim() !== ''
 
 function geometryParams() {
 	const p = {}
@@ -220,8 +217,8 @@ function buildForm() {
 	})
 	form.append(reset)
 
-	form.addEventListener('input', (e) => readField(e.target))
-	form.addEventListener('change', (e) => readField(e.target))
+	form.addEventListener('input', (e) => readField(e.target, false))
+	form.addEventListener('change', (e) => readField(e.target, true))
 }
 
 function writeForm() {
@@ -239,22 +236,26 @@ function updateVisibility() {
 		const row = form.querySelector(`[data-field="${f.id}"]`)
 		row.hidden = f.when ? !f.when(settings) : false
 	}
-	form.querySelector('[data-field="fontFile"]').hidden = settings.font !== 'custom'
 }
 
-async function readField(input) {
+async function readField(input, committed) {
 	const f = FIELDS.find((x) => x.id === input.name)
 	if (!f) return
 	if (f.type === 'file') {
-		if (input.files[0]) await loadCustomFont(input.files[0])
+		if (committed && input.files[0]) await useCustomFont(input.files[0])
 		return
 	}
 	let value
 	if (f.type === 'checkbox') value = input.checked
 	else if (f.type === 'number') {
 		value = parseFloat(input.value)
-		if (Number.isNaN(value)) return
+		if (Number.isNaN(value)) {
+			if (committed) input.value = settings[f.id]
+			return
+		}
 		value = Math.min(f.max, Math.max(f.min, value))
+		// Po dokončení úpravy ukážeme hodnotu, která se skutečně použije.
+		if (committed && String(value) !== input.value) input.value = value
 	} else value = input.value
 	if (settings[f.id] === value) return
 	settings[f.id] = value
@@ -274,35 +275,97 @@ async function readField(input) {
 		inputs.bedX.value = b.x
 		inputs.bedY.value = b.y
 	}
-	if (f.id === 'font') {
-		if (value === 'custom') {
-			updateVisibility()
-			inputs.fontFile.click()
-			return
-		}
-		await loadFont(value)
-	}
+	if (f.id === 'font') await loadFont(value)
 	updateVisibility()
 	onChange(f.id !== 'bodyColor' && f.id !== 'letterColor')
 }
 
-// ---------- Font ----------
+// ---------- Worker ----------
 
-let font = null
-let fontId = ''
+const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })
+const pending = new Map()
+let callSeq = 0
 
-async function loadFont(id) {
-	const def = FONTS.find((f) => f.id === id) || FONTS[0]
-	setStatus('Načítám písmo…')
-	const buf = await (await fetch(def.url)).arrayBuffer()
-	font = opentype.parse(buf)
-	fontId = def.id
+worker.onmessage = ({ data }) => {
+	const p = pending.get(data.id)
+	if (!p) return
+	if ('progress' in data) return p.onProgress?.(data.progress)
+	pending.delete(data.id)
+	if ('error' in data) p.reject(new Error(data.error))
+	else p.resolve(data.result)
+}
+worker.onerror = (e) => setStatus(`Chyba generátoru: ${e.message || 'nepodařilo se spustit'}`, true)
+
+function call(type, payload, { transfer = [], onProgress } = {}) {
+	return new Promise((resolve, reject) => {
+		const id = ++callSeq
+		pending.set(id, { resolve, reject, onProgress })
+		worker.postMessage({ id, type, payload }, transfer)
+	})
 }
 
-async function loadCustomFont(file) {
+// ---------- Font ----------
+
+// Vlastní font se ukládá do IndexedDB, aby přežil obnovení stránky.
+function fontStore(mode, action) {
+	return new Promise((resolve, reject) => {
+		const open = indexedDB.open('scrabble3d', 1)
+		open.onupgradeneeded = () => open.result.createObjectStore('kv')
+		open.onerror = () => reject(open.error)
+		open.onsuccess = () => {
+			const tx = open.result.transaction('kv', mode)
+			const req = action(tx.objectStore('kv'))
+			tx.oncomplete = () => resolve(req.result)
+			tx.onerror = () => reject(tx.error)
+		}
+	})
+}
+
+let fontKey = ''
+
+function setCustomFontOption(name) {
+	let opt = inputs.font.querySelector('option[value="custom"]')
+	if (!opt) {
+		opt = new Option('', 'custom')
+		inputs.font.add(opt)
+	}
+	opt.textContent = `Vlastní: ${name}`
+}
+
+async function loadFont(id) {
+	setStatus('Načítám písmo…')
 	try {
-		font = opentype.parse(await file.arrayBuffer())
-		fontId = `custom:${file.name}:${file.size}`
+		if (id === 'custom') {
+			const stored = await fontStore('readonly', (s) => s.get('font')).catch(() => null)
+			if (stored) {
+				await call('font', { buffer: stored.buffer.slice(0), key: `custom:${stored.name}:${stored.buffer.byteLength}` })
+				fontKey = `custom:${stored.name}:${stored.buffer.byteLength}`
+				setCustomFontOption(stored.name)
+				inputs.font.value = 'custom'
+				return
+			}
+			id = settings.font = FONTS[0].id
+			inputs.font.value = id
+		}
+		const def = FONTS.find((f) => f.id === id) || FONTS[0]
+		await call('font', { url: new URL(def.url, location.href).href, key: def.id })
+		fontKey = def.id
+	} catch (err) {
+		setStatus(`Písmo se nepodařilo načíst: ${err.message}`, true)
+		throw err
+	}
+}
+
+async function useCustomFont(file) {
+	try {
+		const buffer = await file.arrayBuffer()
+		const key = `custom:${file.name}:${buffer.byteLength}`
+		await call('font', { buffer: buffer.slice(0), key })
+		fontKey = key
+		await fontStore('readwrite', (s) => s.put({ name: file.name, buffer }, 'font')).catch(() => {})
+		setCustomFontOption(file.name)
+		settings.font = 'custom'
+		inputs.font.value = 'custom'
 		onChange(true)
 	} catch (err) {
 		setStatus(`Font se nepodařilo načíst: ${err.message}`, true)
@@ -310,38 +373,6 @@ async function loadCustomFont(file) {
 }
 
 // ---------- Kameny ----------
-
-let tileCache = new Map()
-let tileCacheKey = ''
-
-function getTile(letter, value) {
-	const p = geometryParams()
-	const key = JSON.stringify(p) + fontId
-	if (key !== tileCacheKey) {
-		for (const t of tileCache.values()) disposeTileGeometry(t)
-		tileCache = new Map()
-		tileCacheKey = key
-	}
-	const k = `${letter}|${value}`
-	let t = tileCache.get(k)
-	if (!t) {
-		const built = buildTile(layoutTile(font, letter, value, p), p)
-		const f = (a) => Float32Array.from(a)
-		t = {
-			letter,
-			value,
-			height: built.height,
-			body: f(built.body),
-			accent: f(built.accent),
-			parts: built.parts && { body: f(built.parts.body), letters: f(built.parts.letters) },
-		}
-		t.single = concatTris([t.body, t.accent])
-		// Zapuštěná písmena v náhledu vyplňují prohlubně, jako po vícebarevném tisku.
-		t.preview = p.style === 'inlay' ? { body: t.parts.body, accent: t.parts.letters } : { body: t.body, accent: t.accent }
-		tileCache.set(k, t)
-	}
-	return t
-}
 
 function tileList() {
 	return parseTiles(settings.tiles)
@@ -355,6 +386,7 @@ function expandedTiles() {
 	return list
 }
 
+// Rozmístění na podložky; neúplná poslední řada je vycentrovaná.
 function plates() {
 	const s = settings.size
 	const gap = settings.gap
@@ -366,17 +398,56 @@ function plates() {
 	const out = []
 	for (let i = 0; i < all.length; i += per) {
 		const chunk = all.slice(i, i + per)
-		const usedCols = Math.min(cols, chunk.length)
 		const usedRows = Math.ceil(chunk.length / cols)
 		out.push(
-			chunk.map((t, j) => ({
-				...t,
-				x: ((j % cols) - (usedCols - 1) / 2) * (s + gap),
-				y: ((usedRows - 1) / 2 - Math.floor(j / cols)) * (s + gap),
-			})),
+			chunk.map((t, j) => {
+				const row = Math.floor(j / cols)
+				const inRow = Math.min(cols, chunk.length - row * cols)
+				return {
+					...t,
+					x: ((j % cols) - (inRow - 1) / 2) * (s + gap),
+					y: ((usedRows - 1) / 2 - row) * (s + gap),
+				}
+			}),
 		)
 	}
 	return out
+}
+
+// Náhledové sítě z workeru, klíčované nastavením geometrie a fontem.
+let tileCache = new Map()
+let tileCacheKey = ''
+
+const tileKey = (t) => `${t.letter}|${t.value}`
+
+async function ensureTiles(items) {
+	const params = geometryParams()
+	const key = JSON.stringify(params) + fontKey
+	if (key !== tileCacheKey) {
+		for (const t of tileCache.values()) {
+			t.geo.body.dispose()
+			t.geo.accent.dispose()
+		}
+		tileCache = new Map()
+		tileCacheKey = key
+	}
+	const seen = new Set()
+	const missing = items.filter((t) => {
+		const k = tileKey(t)
+		if (tileCache.has(k) || seen.has(k)) return false
+		seen.add(k)
+		return true
+	})
+	if (!missing.length) return true
+	const built = await call('tiles', { params, items: missing.map(({ letter, value }) => ({ letter, value })) })
+	if (key !== tileCacheKey) return false // mezitím se změnilo nastavení
+	for (const t of built) {
+		tileCache.set(tileKey(t), {
+			...t,
+			geo: { body: trisToGeometry(t.body), accent: trisToGeometry(t.accent) },
+		})
+	}
+	return true
 }
 
 // ---------- 3D náhled ----------
@@ -403,7 +474,8 @@ scene.add(rim)
 const bodyMat = new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0 })
 const accentMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1 })
 const content = new THREE.Group()
-scene.add(content)
+const bedGroup = new THREE.Group()
+scene.add(content, bedGroup)
 
 function trisToGeometry(tris) {
 	const g = new THREE.BufferGeometry()
@@ -412,28 +484,13 @@ function trisToGeometry(tris) {
 	return g
 }
 
-function tileGeometry(t) {
-	if (!t.geo) t.geo = { body: trisToGeometry(t.preview.body), accent: trisToGeometry(t.preview.accent) }
-	return t.geo
-}
-
-function disposeTileGeometry(t) {
-	if (!t.geo) return
-	t.geo.body.dispose()
-	t.geo.accent.dispose()
-}
-
 function addTileMesh(t, x, y) {
-	const g = tileGeometry(t)
-	const body = new THREE.Mesh(g.body, bodyMat)
-	const accent = new THREE.Mesh(g.accent, accentMat)
+	const { geo } = tileCache.get(tileKey(t))
+	const body = new THREE.Mesh(geo.body, bodyMat)
+	const accent = new THREE.Mesh(geo.accent, accentMat)
 	body.position.set(x, y, 0)
 	accent.position.set(x, y, 0)
 	content.add(body, accent)
-}
-
-function clearContent() {
-	content.clear()
 }
 
 let lastFrame = ''
@@ -468,13 +525,15 @@ renderer.setAnimationLoop(() => {
 let view = 'tile'
 let selected = 0
 let plateIndex = 0
+let userFlip = false
 
 const statusEl = document.getElementById('status')
 function setStatus(text, error = false) {
 	statusEl.textContent = text
 	statusEl.classList.toggle('error', error)
-	statusEl.hidden = !text
 }
+
+const letterName = (t) => (t.letter === '_' ? 'Žolík' : t.letter)
 
 function renderTileList() {
 	const list = tileList()
@@ -485,8 +544,10 @@ function renderTileList() {
 			const b = document.createElement('button')
 			b.type = 'button'
 			b.className = 'chip' + (i === selected ? ' active' : '')
-			b.title = `${t.letter === '_' ? 'Žolík' : t.letter} · ${t.value} b. · ${t.count}×`
-			b.innerHTML = `<span class="l"></span><span class="v"></span><span class="c"></span>`
+			b.setAttribute('aria-pressed', String(i === selected))
+			b.setAttribute('aria-label', `${letterName(t)}, ${t.value} b., ${t.count} ks`)
+			b.title = `${letterName(t)} · ${t.value} b. · ${t.count}×`
+			b.innerHTML = `<span class="l" aria-hidden="true"></span><span class="v" aria-hidden="true"></span><span class="c" aria-hidden="true"></span>`
 			b.querySelector('.l').textContent = t.letter === '_' ? '' : t.letter
 			b.querySelector('.v').textContent = settings.showValue && (t.value > 0 || settings.showZero) ? t.value : ''
 			b.querySelector('.c').textContent = `${t.count}×`
@@ -503,7 +564,7 @@ function renderTileList() {
 function renderSummary() {
 	const total = expandedTiles().length
 	const n = plates().length
-	const word = n === 1 ? 'podložka' : n < 5 ? 'podložky' : 'podložek'
+	const word = n === 1 ? 'podložka' : n >= 2 && n <= 4 ? 'podložky' : 'podložek'
 	document.getElementById('summary').textContent = `${total} kamenů · ${n} ${word}`
 
 	const sel = document.getElementById('plate-select')
@@ -515,7 +576,7 @@ function renderSummary() {
 
 const mm = (v) => `${+v.toFixed(2)} mm`.replace('.', ',')
 
-// Doporučení pro slicer podle zvoleného provedení a rozměrů.
+// Doporučení pro slicer a upozornění podle nastavení a vygenerovaných kamenů.
 function slicerTips() {
 	const lh = settings.layerHeight
 	const T = settings.thickness
@@ -523,6 +584,18 @@ function slicerTips() {
 	const tips = []
 	const warn = (text) => tips.push({ text, warn: true })
 	const tip = (text) => tips.push({ text })
+
+	const built = tileList()
+		.map((t) => ({ t, info: tileCache.get(tileKey(t)) }))
+		.filter((x) => x.info)
+	const missing = [...new Set(built.flatMap((x) => x.info.missing))]
+	if (missing.length) {
+		warn(`Zvolený font neobsahuje znaky ${missing.join(' ')} – na kamenech by chyběly. Zvolte jiný font (např. DejaVu Sans).`)
+	}
+	const overflow = built.filter((x) => x.info.overflow).map((x) => letterName(x.t))
+	if (overflow.length) {
+		warn(`Přesahuje okraj kamene a bude oříznuto: ${overflow.join(', ')}. Zmenšete písmeno, hodnotu či značku nebo upravte posun.`)
+	}
 
 	if (settings.style === 'engraved') {
 		tip('Vyrytá písmena se tisknou v jedné barvě. Pro kontrast lze prohlubně po tisku zatřít barvou nebo voskovkou.')
@@ -544,7 +617,7 @@ function slicerTips() {
 	const checks = [['Tloušťka kamene', T]]
 	if (settings.style === 'raised') checks.push(['Výška písmen', settings.height])
 	else checks.push(['Hloubka písmen', settings.depth])
-	if (settings.markText.trim()) checks.push(['Hloubka značky', settings.markDepth])
+	if (hasMark()) checks.push(['Hloubka značky', settings.markDepth])
 	for (const [label, v] of checks) {
 		const layers = v / lh
 		if (Math.abs(layers - Math.round(layers)) > 0.01) {
@@ -552,8 +625,8 @@ function slicerTips() {
 		}
 	}
 
-	if (settings.markText.trim() && !faceDown) {
-		tip('Značka na spodku leží na podložce a tiskne se jako krátké přemostění – stačí mělká (1–2 vrstvy) a jednoduchý tvar.')
+	if (hasMark() && !faceDown) {
+		tip('Značka na spodku leží na podložce a tiskne se jako krátké přemostění – stačí mělká (1–2 vrstvy) a jednoduchý tvar. V náhledu ji uvidíte tlačítkem „Otočit“.')
 	}
 	return tips
 }
@@ -569,23 +642,35 @@ function renderTips() {
 	)
 }
 
-function redraw() {
-	if (!font) return
+// Otočení náhledu: na podložce se kameny ukazují tak, jak se tisknou;
+// tlačítko „Otočit“ to vždy převrátí.
+function applyFlip() {
+	const asPrinted = view === 'plate' && effectiveFaceDown()
+	const flipped = userFlip !== asPrinted
+	const top = settings.thickness + (settings.style === 'raised' ? settings.height : 0)
+	content.rotation.y = flipped ? Math.PI : 0
+	content.position.z = flipped ? top : 0
+	const btn = document.getElementById('flip')
+	btn.setAttribute('aria-pressed', String(userFlip))
+	const note = document.getElementById('view-note')
+	note.textContent = flipped ? (view === 'plate' && asPrinted && !userFlip ? 'Lícem dolů, jak se tiskne' : 'Pohled na spodek') : ''
+}
+
+function drawScene() {
 	bodyMat.color.set(settings.bodyColor)
 	accentMat.color.set(settings.letterColor)
-	renderTips()
-	clearContent()
-	try {
-		if (view === 'tile') {
-			const t = tileList()[selected]
-			if (t) addTileMesh(getTile(t.letter, t.value), 0, 0)
-			frame(settings.size, settings.size, `tile:${settings.size}`)
-		} else {
-			const ps = plates()
-			const plate = ps[plateIndex] || []
-			for (const t of plate) addTileMesh(getTile(t.letter, t.value), t.x, t.y)
-			const bed = bedSize()
-			const outline = new THREE.LineLoop(
+	content.clear()
+	bedGroup.clear()
+	if (view === 'tile') {
+		const t = tileList()[selected]
+		if (t && tileCache.has(tileKey(t))) addTileMesh(t, 0, 0)
+		frame(settings.size, settings.size, `tile:${settings.size}`)
+	} else {
+		const plate = plates()[plateIndex] || []
+		for (const t of plate) if (tileCache.has(tileKey(t))) addTileMesh(t, t.x, t.y)
+		const bed = bedSize()
+		bedGroup.add(
+			new THREE.LineLoop(
 				new THREE.BufferGeometry().setFromPoints([
 					new THREE.Vector3(-bed.x / 2, -bed.y / 2, 0),
 					new THREE.Vector3(bed.x / 2, -bed.y / 2, 0),
@@ -593,20 +678,39 @@ function redraw() {
 					new THREE.Vector3(-bed.x / 2, bed.y / 2, 0),
 				]),
 				new THREE.LineBasicMaterial({ color: 0x888888 }),
-			)
-			content.add(outline)
-			frame(bed.x, bed.y, `plate:${bed.x}x${bed.y}`)
-		}
+			),
+		)
+		frame(bed.x, bed.y, `plate:${bed.x}x${bed.y}`)
+	}
+	applyFlip()
+}
+
+let drawSeq = 0
+
+async function redraw() {
+	if (!fontKey) return
+	const seq = ++drawSeq
+	try {
+		// Nejdřív to, co je vidět, pak zbytek sady kvůli upozorněním.
+		const visible = view === 'tile' ? tileList().slice(selected, selected + 1) : plates()[plateIndex] || []
+		if (visible.some((t) => !tileCache.has(tileKey(t)))) setStatus('Generuji…')
+		if (!(await ensureTiles(visible)) || seq !== drawSeq) return
+		drawScene()
+		if (!(await ensureTiles(tileList())) || seq !== drawSeq) return
+		renderTips()
 		setStatus('')
 	} catch (err) {
 		console.error(err)
-		setStatus(`Chyba při generování: ${err.message}`, true)
+		if (seq === drawSeq) setStatus(`Chyba při generování: ${err.message}`, true)
 	}
 }
 
 function setView(v) {
 	view = v
-	for (const b of document.querySelectorAll('[data-view]')) b.classList.toggle('active', b.dataset.view === v)
+	for (const b of document.querySelectorAll('[data-view]')) {
+		b.classList.toggle('active', b.dataset.view === v)
+		b.setAttribute('aria-pressed', String(b.dataset.view === v))
+	}
 	renderSummary()
 	redraw()
 }
@@ -616,13 +720,16 @@ function onChange(geometry = true) {
 	saveSettings()
 	renderTileList()
 	renderSummary()
+	renderTips()
 	clearTimeout(timer)
-	timer = setTimeout(redraw, geometry ? 150 : 0)
+	if (geometry) timer = setTimeout(redraw, 150)
+	else drawScene()
 }
 
 // ---------- Export ----------
 
-function download(data, name, type = 'application/octet-stream') {
+function download(data, name) {
+	const type = name.endsWith('.zip') ? 'application/zip' : 'application/octet-stream'
 	const url = URL.createObjectURL(new Blob([data], { type }))
 	const a = document.createElement('a')
 	a.href = url
@@ -635,75 +742,59 @@ function fileSafe(s) {
 	return s === '_' ? 'zolik' : s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]/g, '') || 'x'
 }
 
-// Vrátí soubory pro skupinu kamenů rozmístěných na pozicích x, y.
-function filesFor(prefix, placed) {
-	const flip = effectiveFaceDown() ? settings.thickness : null
-	const gather = (pick) => concatTris(placed.map((p) => placeTris(pick(p.tile), p.x, p.y, flip)))
-	const files = {}
-	const style = settings.style
-	if (style !== 'inlay') files[`${prefix}.stl`] = toSTL(gather((t) => t.single), prefix)
-	if (style !== 'engraved') {
-		const body = gather((t) => t.parts.body)
-		const letters = gather((t) => t.parts.letters)
-		files[`${prefix}${style === 'raised' ? '-vicebarevne' : ''}.3mf`] = to3MF(
-			[
-				{ name: 'Kámen', color: settings.bodyColor, tris: body },
-				{ name: 'Písmena', color: settings.letterColor, tris: letters },
-			],
-			prefix,
-		)
-		files[`${prefix}-kamen.stl`] = toSTL(body, `${prefix}-kamen`)
-		files[`${prefix}-pismena.stl`] = toSTL(letters, `${prefix}-pismena`)
-	}
-	return files
-}
-
-const nextFrame = () => new Promise((r) => setTimeout(r, 0))
-
-async function downloadTile() {
-	const t = tileList()[selected]
-	if (!t) return
-	const prefix = `scrabble-${fileSafe(t.letter)}-${t.value}`
-	const files = filesFor(prefix, [{ tile: getTile(t.letter, t.value), x: 0, y: 0 }])
-	const names = Object.keys(files)
-	if (names.length === 1) download(files[names[0]], names[0])
-	else download(zip(files), `${prefix}.zip`, 'application/zip')
-}
-
-async function downloadSet() {
-	const btn = document.getElementById('dl-set')
-	btn.disabled = true
+async function runExport(button, payload) {
+	button.disabled = true
 	try {
-		const ps = plates()
-		const files = {}
-		const lines = [
-			'Scrabble 3D generátor – https://github.com/FilipChalupa/scrabble-3d-generator',
-			'',
-			`Provedení: ${STYLES[settings.style]}`,
-			`Kámen: ${settings.size} × ${settings.size} × ${settings.thickness} mm`,
-			`Tisk lícem dolů: ${effectiveFaceDown() ? 'ano' : 'ne'}`,
-			'',
-		]
-		for (let i = 0; i < ps.length; i++) {
-			setStatus(`Generuji podložku ${i + 1} / ${ps.length}…`)
-			await nextFrame()
-			const prefix = `podlozka-${String(i + 1).padStart(2, '0')}`
-			const placed = ps[i].map((p) => ({ tile: getTile(p.letter, p.value), x: p.x, y: p.y }))
-			Object.assign(files, filesFor(prefix, placed))
-			const letters = ps[i].map((p) => (p.letter === '_' ? '_' : p.letter)).join(' ')
-			lines.push(`${prefix}: ${ps[i].length} kamenů – ${letters}`)
-		}
-		files['README.txt'] = new TextEncoder().encode(lines.join('\n') + '\n')
-		setStatus('Balím ZIP…')
-		await nextFrame()
-		download(zip(files), 'scrabble-sada.zip', 'application/zip')
+		const { name, data } = await call(
+			'export',
+			{
+				...payload,
+				params: geometryParams(),
+				flip: effectiveFaceDown() ? settings.thickness : null,
+				colors: { body: settings.bodyColor, letters: settings.letterColor },
+			},
+			{ onProgress: (text) => setStatus(text) },
+		)
+		download(data, name)
 		setStatus('')
 	} catch (err) {
 		console.error(err)
 		setStatus(`Export selhal: ${err.message}`, true)
 	} finally {
-		btn.disabled = false
+		button.disabled = false
 	}
+}
+
+function downloadTile(e) {
+	const t = tileList()[selected]
+	if (!t) return
+	const prefix = `scrabble-${fileSafe(t.letter)}-${t.value}`
+	runExport(e.currentTarget, {
+		groups: [{ prefix, placed: [{ letter: t.letter, value: t.value, x: 0, y: 0 }] }],
+		zipName: `${prefix}.zip`,
+	})
+}
+
+function downloadSet(e) {
+	const ps = plates()
+	const groups = ps.map((plate, i) => ({
+		prefix: `podlozka-${String(i + 1).padStart(2, '0')}`,
+		placed: plate.map(({ letter, value, x, y }) => ({ letter, value, x, y })),
+	}))
+	const readme = [
+		'Scrabble 3D generátor – https://github.com/FilipChalupa/scrabble-3d-generator',
+		'',
+		`Provedení: ${STYLES[settings.style]}`,
+		`Kámen: ${settings.size} × ${settings.size} × ${settings.thickness} mm`,
+		`Tisk lícem dolů: ${effectiveFaceDown() ? 'ano' : 'ne'}`,
+		'',
+		...groups.map((g) => `${g.prefix}: ${g.placed.length} kamenů – ${g.placed.map((p) => p.letter).join(' ')}`),
+		'',
+		'Tipy pro tisk:',
+		...slicerTips().map((t) => `- ${t.text}`),
+		'',
+	].join('\n')
+	runExport(e.currentTarget, { groups, readme, zipName: 'scrabble-sada.zip' })
 }
 
 // ---------- Start ----------
@@ -715,14 +806,17 @@ document.getElementById('plate-select').addEventListener('change', (e) => {
 	plateIndex = Number(e.target.value)
 	redraw()
 })
+document.getElementById('flip').addEventListener('click', () => {
+	userFlip = !userFlip
+	applyFlip()
+})
 document.getElementById('dl-tile').addEventListener('click', downloadTile)
 document.getElementById('dl-set').addEventListener('click', downloadSet)
 
-try {
-	await loadFont(settings.font)
-} catch (err) {
-	setStatus(`Písmo se nepodařilo načíst: ${err.message}`, true)
-}
 renderTileList()
 renderSummary()
-redraw()
+try {
+	await loadFont(settings.font)
+	saveSettings()
+	redraw()
+} catch {}

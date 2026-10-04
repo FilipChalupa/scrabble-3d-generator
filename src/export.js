@@ -1,6 +1,6 @@
 // Export trojúhelníkových sítí do STL a 3MF.
 
-import { zipSync, strToU8 } from 'fflate'
+import { zipSync, strToU8 } from './deps.js'
 
 // Posune (a volitelně otočí lícem dolů) pole trojúhelníků.
 export function placeTris(tris, dx, dy, flipHeight = null) {

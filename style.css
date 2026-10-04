@@ -272,6 +272,31 @@ button:focus-visible {
 	color: var(--accent-text);
 }
 
+.tool-btn {
+	font: inherit;
+	background: var(--panel);
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 4px 12px;
+	cursor: pointer;
+}
+
+.tool-btn[aria-pressed='true'] {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+
+.view-note {
+	align-self: center;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.view-note:empty {
+	display: none;
+}
+
 .status {
 	position: absolute;
 	bottom: 12px;

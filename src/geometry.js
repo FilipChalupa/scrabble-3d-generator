@@ -198,6 +198,15 @@ export function layoutTile(font, letter, value, p) {
 		}
 	}
 
+	// Zasahuje něco do okraje kamene? Takové části se při stavbě oříznou.
+	const limit = s / 2 - (p.edgeMargin ?? 0)
+	const overflows = (c) => {
+		if (!c?.length) return false
+		const b = bounds(c)
+		return Math.max(-b.minX, b.maxX, -b.minY, b.maxY) > limit + 1e-6
+	}
+	out.overflow = overflows(out.letter) || overflows(out.value) || overflows(out.mark)
+
 	return out
 }
 

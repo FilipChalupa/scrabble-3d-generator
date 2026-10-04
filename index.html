@@ -14,10 +14,7 @@
 			{
 				"imports": {
 					"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-					"opentype.js": "https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.module.js",
-					"fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js",
-					"polygon-clipping": "https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/+esm"
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 				}
 			}
 		</script>
@@ -45,11 +42,13 @@
 				<div class="viewer-wrap">
 					<div id="viewer"></div>
 					<div class="viewer-tools">
-						<div class="seg" role="tablist">
-							<button type="button" data-view="tile" class="active">Kámen</button>
-							<button type="button" data-view="plate">Podložka</button>
+						<div class="seg">
+							<button type="button" data-view="tile" class="active" aria-pressed="true">Kámen</button>
+							<button type="button" data-view="plate" aria-pressed="false">Podložka</button>
 						</div>
-						<select id="plate-select" hidden></select>
+						<select id="plate-select" aria-label="Podložka" hidden></select>
+						<button type="button" id="flip" class="tool-btn" aria-pressed="false" title="Otočit náhled a ukázat spodek kamene">Otočit</button>
+						<span id="view-note" class="view-note"></span>
 					</div>
 					<div id="status" class="status" aria-live="polite"></div>
 				</div>

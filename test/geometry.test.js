@@ -77,7 +77,7 @@ test('přibalené fonty obsahují všechna písmena předvoleb', () => {
 			.filter((c) => c !== '_'),
 	)
 	for (const [id, font] of Object.entries(fonts)) {
-		const missing = [...chars].filter((c) => !font.hasChar(c))
+		const missing = [...chars].filter((c) => !(font.charToGlyphIndex(c) > 0))
 		assert.deepEqual(missing, [], id)
 	}
 })
