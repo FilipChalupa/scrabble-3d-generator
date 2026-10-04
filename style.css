@@ -370,7 +370,8 @@ button:focus-visible {
 	place-items: center;
 	font-weight: 800;
 	font-size: 22px;
-	padding-right: 6px;
+	/* stejně jako na kameni: vodorovně uprostřed, o 3 % výš */
+	padding-bottom: 6%;
 }
 
 .chip .v {
