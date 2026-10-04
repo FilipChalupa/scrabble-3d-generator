@@ -5,7 +5,7 @@ import { layoutTile, buildTile } from './geometry.js'
 import { placeTris, concatTris, toSTL, to3MF, zip } from './export.js'
 import { PRESETS, FONTS, BEDS, parseTiles } from './presets.js'
 
-const STORAGE_KEY = 'scrabble3d:v1'
+const STORAGE_KEY = 'scrabble3d:v2'
 const EDGE_MARGIN = 0.5
 const BED_MARGIN = 5
 
@@ -71,16 +71,16 @@ const GROUPS = [
 		title: 'Písmeno',
 		fields: [
 			{ id: 'letterSize', type: 'number', label: 'Výška verzálky', unit: '%', min: 15, max: 80, step: 1, def: 45 },
-			{ id: 'letterMaxWidth', type: 'number', label: 'Max. šířka', unit: '%', min: 20, max: 95, step: 1, def: 64 },
-			{ id: 'letterOffsetX', type: 'number', label: 'Posun vodorovně', unit: '%', min: -30, max: 30, step: 1, def: -6 },
-			{ id: 'letterOffsetY', type: 'number', label: 'Posun svisle', unit: '%', min: -30, max: 30, step: 1, def: 3 },
+			{ id: 'letterMaxWidth', type: 'number', label: 'Max. šířka', unit: '%', min: 20, max: 95, step: 1, def: 58 },
+			{ id: 'letterOffsetX', type: 'number', label: 'Posun vodorovně', unit: '%', min: -30, max: 30, step: 1, def: 0 },
+			{ id: 'letterOffsetY', type: 'number', label: 'Posun svisle', unit: '%', min: -30, max: 30, step: 1, def: 0 },
 		],
 	},
 	{
 		title: 'Bodová hodnota',
 		fields: [
 			{ id: 'showValue', type: 'checkbox', label: 'Zobrazit body', def: true },
-			{ id: 'valueSize', type: 'number', label: 'Velikost', unit: '%', min: 5, max: 40, step: 1, def: 20, when: (s) => s.showValue },
+			{ id: 'valueSize', type: 'number', label: 'Velikost', unit: '%', min: 5, max: 40, step: 1, def: 19, when: (s) => s.showValue },
 			{ id: 'valueMargin', type: 'number', label: 'Odsazení od hrany', unit: 'mm', min: 0.5, max: 8, step: 0.1, def: 1.4, when: (s) => s.showValue },
 		],
 	},

@@ -146,11 +146,12 @@ export function roundedRect(size, radius, segments = 8) {
 	return cleanContour(pts)
 }
 
-// Rozmístí písmeno a bodovou hodnotu na plochu kamene. Vrací obrysy v mm.
+// Rozmístí písmeno a bodovou hodnotu na plochu kamene. Vrací obrysy v mm
+// a obdélník kolem hodnoty, o který se písmeno ořízne, aby se nedotýkaly.
 export function layoutTile(font, letter, value, p) {
 	const s = p.size
 	const cap = capHeight(font)
-	const out = []
+	const out = { letter: [], value: [], knockout: null }
 
 	if (letter && letter !== '_') {
 		const capTarget = p.letterSize * s
@@ -163,7 +164,7 @@ export function layoutTile(font, letter, value, p) {
 			const capH = capTarget * k
 			const cx = ((bb.minX + bb.maxX) / 2) * k
 			const baseline = p.letterOffsetY * s - capH / 2
-			out.push(...transform(c, k, p.letterOffsetX * s - cx, baseline))
+			out.letter = transform(c, k, p.letterOffsetX * s - cx, baseline)
 		}
 	}
 
@@ -173,7 +174,15 @@ export function layoutTile(font, letter, value, p) {
 		if (c.length) {
 			const bb = bounds(c)
 			const m = p.valueMargin
-			out.push(...transform(c, 1, s / 2 - m - bb.maxX, -s / 2 + m))
+			out.value = transform(c, 1, s / 2 - m - bb.maxX, -s / 2 + m)
+			const vb = bounds(out.value)
+			const g = p.valueGap ?? 0.6
+			out.knockout = [
+				[vb.minX - g, vb.minY - g],
+				[s, vb.minY - g],
+				[s, vb.maxY + g],
+				[vb.minX - g, vb.maxY + g],
+			]
 		}
 	}
 
@@ -216,8 +225,15 @@ const openRing = (r) => cleanContour(r.slice(0, -1))
 // Plné oblasti písmen a jejich doplněk v rámci obrysu kamene.
 // Glyfy se nejdřív sjednotí (překryvy písmene a hodnoty, diakritiky…) a oříznou
 // o kousek menším obrysem, aby se nedotýkaly hrany kamene.
-export function regions(outline, contours, clip) {
-	const glyphs = polygonsByParity(nest(contours), 0).map((p) => [[closeRing(p.outer), ...p.holes.map(closeRing)]])
+export function regions(outline, layout, clip) {
+	const toPolys = (contours) =>
+		polygonsByParity(nest(contours), 0).map((p) => [[closeRing(p.outer), ...p.holes.map(closeRing)]])
+	let letter = toPolys(layout.letter)
+	const value = toPolys(layout.value)
+	if (letter.length && layout.knockout) {
+		letter = [clipping.difference(clipping.union(...letter), [[closeRing(layout.knockout)]])]
+	}
+	const glyphs = [...letter, ...value]
 	let rings = []
 	if (glyphs.length) {
 		const merged = clipping.intersection(clipping.union(...glyphs), [[closeRing(clip)]])
@@ -287,12 +303,12 @@ export function extrude(polys, z0, z1) {
 //  - inlay:    písmena zapuštěná v rovině povrchu (dvoubarevný tisk)
 // Vrací { body, accent, parts } – body+accent tvoří jednu uzavřenou síť,
 // parts jsou samostatné díly pro vícebarevný tisk (nebo null).
-export function buildTile(contours, p) {
+export function buildTile(layout, p) {
 	const T = p.thickness
 	const d = Math.min(p.depth, T - 0.2)
 	const outline = oriented(roundedRect(p.size, p.radius), true)
 	const clip = roundedRect(p.size - 2 * p.edgeMargin, Math.max(0, p.radius - p.edgeMargin))
-	const { letters, rest } = regions(outline, contours, clip)
+	const { letters, rest } = regions(outline, layout, clip)
 	const outlinePoly = [{ outer: outline, holes: [] }]
 	// První oblast doplňku je samotný obrys kamene – jeho stěny tvoří vnější plášť.
 	const restInner = rest.map((r, i) => (i === 0 ? { outer: null, holes: r.holes } : r))
