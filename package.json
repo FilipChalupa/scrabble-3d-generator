@@ -1,0 +1,16 @@
+{
+	"name": "scrabble-3d-generator",
+	"private": true,
+	"type": "module",
+	"description": "Generátor kamenů do Scrabble pro 3D tisk. Web je statický; npm je jen pro testy.",
+	"scripts": {
+		"test": "node --import ./test/register.js --test 'test/**/*.test.js'",
+		"start": "python3 -m http.server 8000"
+	},
+	"devDependencies": {
+		"earcut": "3.0.2",
+		"fflate": "0.8.2",
+		"opentype.js": "1.3.4",
+		"polygon-clipping": "0.15.7"
+	}
+}

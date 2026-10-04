@@ -2,8 +2,7 @@
 // Výstupem jsou pole trojúhelníků [x,y,z, x,y,z, x,y,z, ...] v milimetrech,
 // kámen leží středem v počátku XY a spodní stranou na z = 0.
 
-import { ShapeUtils, Vector2 } from 'three'
-import clipping from 'polygon-clipping'
+import { earcut, clipping } from './deps.js'
 
 const EPS = 1e-6
 
@@ -233,23 +232,70 @@ function polygonsByParity(info, parity) {
 }
 
 const closeRing = (c) => [...c, c[0]]
-const openRing = (r) => cleanContour(r.slice(0, -1))
+const openRing = (r) => simplifyRing(r.slice(0, -1))
+
+// Odstraní téměř totožné body, body na přímce a nulově široké výběžky,
+// které po booleovských operacích občas zůstanou.
+function simplifyRing(ring, tol = 1e-3) {
+	let r = ring
+	let changed = true
+	while (changed && r.length >= 3) {
+		changed = false
+		const out = []
+		for (let i = 0; i < r.length; i++) {
+			const prev = out.length ? out[out.length - 1] : r[r.length - 1]
+			const p = r[i]
+			const next = r[(i + 1) % r.length]
+			const ux = p[0] - prev[0], uy = p[1] - prev[1]
+			const vx = next[0] - p[0], vy = next[1] - p[1]
+			const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy)
+			if (lu < tol || lv < tol || Math.abs(ux * vy - uy * vx) < 1e-7 * lu * lv) {
+				changed = true
+				continue
+			}
+			out.push(p)
+		}
+		r = out
+	}
+	return r
+}
 
 // Plné oblasti písmen a jejich doplněk v rámci obrysu kamene.
 // Glyfy se nejdřív sjednotí (překryvy písmene a hodnoty, diakritiky…) a oříznou
 // o kousek menším obrysem, aby se nedotýkaly hrany kamene.
-export function regions(outline, layout, clip) {
-	const toPolys = (contours) =>
-		polygonsByParity(nest(contours), 0).map((p) => [[closeRing(p.outer), ...p.holes.map(closeRing)]])
-	let letter = toPolys(layout.letter)
-	const value = toPolys(layout.value)
-	if (letter.length && layout.knockout) {
-		letter = [clipping.difference(clipping.union(...letter), [[closeRing(layout.knockout)]])]
+// Vyplnění glyfu podle pravidla nonzero, jak to dělají fonty: obrysy se zpracují
+// od největšího, obrysy ve směru vnějšího obrysu se přičtou, opačné odečtou.
+// Zvládne i překrývající se tahy (typické pro proměnné fonty).
+export function fillContours(contours) {
+	if (!contours.length) return []
+	const sorted = contours
+		.map((c) => ({ c, a: signedArea(c) }))
+		.sort((x, y) => Math.abs(y.a) - Math.abs(x.a))
+	const outerSign = Math.sign(sorted[0].a)
+	let result = []
+	for (const { c, a } of sorted) {
+		const poly = [[closeRing(c)]]
+		if (Math.sign(a) === outerSign) result = result.length ? clipping.union(result, poly) : clipping.union(poly)
+		else if (result.length) result = clipping.difference(result, poly)
 	}
-	const glyphs = [...letter, ...value]
+	return result
+}
+
+export function multiPolygonArea(mp) {
+	return mp.reduce((s, poly) => s + poly.reduce((t, ring, i) => t + (i ? -1 : 1) * Math.abs(signedArea(ring)), 0), 0)
+}
+
+// Plné oblasti písmen a jejich doplněk v rámci obrysu kamene.
+// Písmeno se ořízne kolem bodové hodnoty a vše se ořízne o kousek menším
+// obrysem, aby se nic nedotýkalo hrany kamene.
+export function regions(outline, layout, clip) {
+	let letter = fillContours(layout.letter)
+	const value = fillContours(layout.value)
+	if (letter.length && layout.knockout) letter = clipping.difference(letter, [[closeRing(layout.knockout)]])
 	let rings = []
-	if (glyphs.length) {
-		const merged = clipping.intersection(clipping.union(...glyphs), [[closeRing(clip)]])
+	if (letter.length || value.length) {
+		const glyphs = letter.length && value.length ? clipping.union(letter, value) : letter.length ? letter : value
+		const merged = clipping.intersection(glyphs, [[closeRing(clip)]])
 		rings = merged
 			.flat()
 			.map(openRing)
@@ -270,17 +316,56 @@ export function regions(outline, layout, clip) {
 
 // ---------- 3D sestavení ----------
 
-const v2 = (p) => new Vector2(p[0], p[1])
+// Earcut občas vede hranu trojúhelníku přes vrchol, který leží přesně na ní
+// (např. kolineární spodky teček u Ä). Takový trojúhelník rozdělíme, jinak by
+// v síti vznikl T-spoj a těleso by nebylo uzavřené.
+function splitOnVertices(tri, pts) {
+	const out = []
+	const stack = [tri]
+	while (stack.length) {
+		const t = stack.pop()
+		let split = false
+		for (let e = 0; e < 3 && !split; e++) {
+			const i = t[e], j = t[(e + 1) % 3], k = t[(e + 2) % 3]
+			const [ax, ay] = pts[i]
+			const [bx, by] = pts[j]
+			const dx = bx - ax, dy = by - ay
+			const len2 = dx * dx + dy * dy
+			if (len2 < EPS * EPS) continue
+			for (let v = 0; v < pts.length; v++) {
+				const [px, py] = pts[v]
+				if (px < Math.min(ax, bx) - EPS || px > Math.max(ax, bx) + EPS) continue
+				if (py < Math.min(ay, by) - EPS || py > Math.max(ay, by) + EPS) continue
+				const u = ((px - ax) * dx + (py - ay) * dy) / len2
+				if (u <= 1e-9 || u >= 1 - 1e-9) continue
+				if (Math.abs((px - ax) * dy - (py - ay) * dx) / Math.sqrt(len2) > 1e-7) continue
+				stack.push([i, v, k], [v, j, k])
+				split = true
+				break
+			}
+		}
+		if (!split) out.push(t)
+	}
+	return out
+}
 
 function cap(out, polys, z, up) {
 	for (const { outer, holes } of polys) {
 		const all = outer.concat(...holes)
-		const faces = ShapeUtils.triangulateShape(outer.map(v2), holes.map((h) => h.map(v2)))
-		for (let [a, b, c] of faces) {
-			const pa = all[a], pb = all[b], pc = all[c]
-			const cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
-			if (cross > 0 !== up) [b, c] = [c, b]
-			for (const i of [a, b, c]) out.push(all[i][0], all[i][1], z)
+		const holeIndices = []
+		let n = outer.length
+		for (const h of holes) {
+			holeIndices.push(n)
+			n += h.length
+		}
+		const idx = earcut(all.flat(), holeIndices)
+		for (let i = 0; i < idx.length; i += 3) {
+			for (let [a, b, c] of splitOnVertices([idx[i], idx[i + 1], idx[i + 2]], all)) {
+				const pa = all[a], pb = all[b], pc = all[c]
+				const cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
+				if (cross > 0 !== up) [b, c] = [c, b]
+				for (const v of [a, b, c]) out.push(all[v][0], all[v][1], z)
+			}
 		}
 	}
 }

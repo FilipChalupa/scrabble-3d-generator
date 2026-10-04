@@ -53,7 +53,14 @@ Statická stránka bez build kroku – stačí ji servírovat libovolným HTTP s
 python3 -m http.server
 ```
 
-Knihovny ([three.js](https://threejs.org/), [opentype.js](https://opentype.js.org/), [polygon-clipping](https://github.com/mfogel/polygon-clipping), [fflate](https://github.com/101arrowz/fflate)) se načítají z CDN přes import map.
+Testy (uzavřenost sítí pro všechny předvolby, styly a fonty, formát STL/3MF) běží v Node:
+
+```sh
+npm install
+npm test
+```
+
+Knihovny ([three.js](https://threejs.org/), [opentype.js](https://opentype.js.org/), [polygon-clipping](https://github.com/mfogel/polygon-clipping), [earcut](https://github.com/mapbox/earcut), [fflate](https://github.com/101arrowz/fflate)) se načítají z CDN (`src/deps.js`, three.js přes import map).
 
 - `src/geometry.js` – převod glyfů na obrysy, sjednocení a vytažení do uzavřené 3D sítě
 - `src/export.js` – zápis binárního STL a 3MF
