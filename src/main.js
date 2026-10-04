@@ -80,6 +80,7 @@ const GROUPS = [
 		title: 'Bodová hodnota',
 		fields: [
 			{ id: 'showValue', type: 'checkbox', label: 'Zobrazit body', def: true },
+			{ id: 'showZero', type: 'checkbox', label: 'Nula na žolíku (aby byl poznat vršek)', def: true, when: (s) => s.showValue },
 			{ id: 'valueSize', type: 'number', label: 'Velikost', unit: '%', min: 5, max: 40, step: 1, def: 19, when: (s) => s.showValue },
 			{ id: 'valueMargin', type: 'number', label: 'Odsazení od hrany', unit: 'mm', min: 0.5, max: 8, step: 0.1, def: 1.4, when: (s) => s.showValue },
 		],
@@ -136,7 +137,7 @@ const effectiveFaceDown = () => settings.faceDown && settings.style !== 'raised'
 
 function geometryParams() {
 	const p = {}
-	for (const k of ['size', 'thickness', 'radius', 'depth', 'height', 'style', 'showValue', 'valueMargin', 'curveSegments']) {
+	for (const k of ['size', 'thickness', 'radius', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments']) {
 		p[k] = settings[k]
 	}
 	for (const k of PERCENT) p[k] = settings[k] / 100
@@ -478,7 +479,7 @@ function renderTileList() {
 			b.title = `${t.letter === '_' ? 'Žolík' : t.letter} · ${t.value} b. · ${t.count}×`
 			b.innerHTML = `<span class="l"></span><span class="v"></span><span class="c"></span>`
 			b.querySelector('.l').textContent = t.letter === '_' ? '' : t.letter
-			b.querySelector('.v').textContent = settings.showValue && t.value > 0 ? t.value : ''
+			b.querySelector('.v').textContent = settings.showValue && (t.value > 0 || settings.showZero) ? t.value : ''
 			b.querySelector('.c').textContent = `${t.count}×`
 			b.addEventListener('click', () => {
 				selected = i

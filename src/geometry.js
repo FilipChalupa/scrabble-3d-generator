@@ -168,7 +168,7 @@ export function layoutTile(font, letter, value, p) {
 		}
 	}
 
-	if (p.showValue && value > 0) {
+	if (p.showValue && (value > 0 || p.showZero)) {
 		const fontSize = (p.valueSize * s) / cap
 		const c = textContours(font, String(value), fontSize, p.curveSegments)
 		if (c.length) {

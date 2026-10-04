@@ -13,6 +13,7 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
   - **zapuštěná v rovině** – dvoubarevný tisk (AMS / MMU), povrch kamene je hladký
   - **vystouplá** – písmena vystupují nad povrch
 - nastavitelné rozměry kamene, zaoblení, velikost a posun písmene i bodové hodnoty
+- volitelná nula na žolíku, aby byl poznat vršek kamene
 - přibalené fonty s českou diakritikou (DejaVu, Liberation) nebo vlastní TTF/OTF
 - rozmístění kamenů na podložky podle tiskárny (Bambu Lab, Prusa, Creality, vlastní rozměr)
 - volitelný tisk lícem dolů (hladký líc z texturované / hladké podložky)
