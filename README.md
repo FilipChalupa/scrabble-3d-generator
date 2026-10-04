@@ -7,7 +7,7 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
 
 ## Co umí
 
-- předvolby rozložení písmen pro **češtinu** a **angličtinu**, nebo vlastní seznam (`písmeno body počet`, `_` = žolík)
+- předvolby rozložení písmen pro **češtinu**, **slovenštinu**, **němčinu**, **polštinu** a **angličtinu** (podle [Wikipedie](https://en.wikipedia.org/wiki/Scrabble_letter_distributions)), nebo vlastní seznam (`písmeno body počet`, `_` = žolík)
 - tři provedení písmen:
   - **vyrytá** – jedna barva, písmena jsou prohlubně v kameni
   - **zapuštěná v rovině** – dvoubarevný tisk (AMS / MMU), povrch kamene je hladký
