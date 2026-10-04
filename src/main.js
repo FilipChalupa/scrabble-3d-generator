@@ -430,7 +430,7 @@ function frame(w, h, key) {
 	if (key === lastFrame) return
 	lastFrame = key
 	const r = Math.max(w, h)
-	camera.position.set(0, -r * 1.35, r * 1.55)
+	camera.position.set(0, -r * 1.6, r * 1.9)
 	controls.target.set(0, 0, 0)
 	camera.near = r / 100
 	camera.far = r * 20
