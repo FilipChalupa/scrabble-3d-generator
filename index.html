@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="cs">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Scrabble 3D generátor</title>
+		<meta name="description" content="Generátor kamenů do hry Scrabble pro 3D tisk – STL a 3MF přímo v prohlížeči." />
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='6' y='6' width='88' height='88' rx='14' fill='%23f1e3c4' stroke='%23a8875a' stroke-width='5'/><text x='44' y='72' font-family='sans-serif' font-weight='bold' font-size='62' text-anchor='middle' fill='%232b2117'>Ř</text><text x='82' y='86' font-family='sans-serif' font-weight='bold' font-size='22' text-anchor='end' fill='%232b2117'>4</text></svg>" />
+		<link rel="stylesheet" href="style.css" />
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+					"opentype.js": "https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.module.js",
+					"fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js",
+					"polygon-clipping": "https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/+esm"
+				}
+			}
+		</script>
+		<script type="module" src="src/main.js"></script>
+	</head>
+	<body>
+		<header class="topbar">
+			<h1><span class="logo" aria-hidden="true">Ř<sub>4</sub></span> Scrabble 3D generátor</h1>
+			<a class="gh" href="https://github.com/FilipChalupa/scrabble-3d-generator" target="_blank" rel="noopener">GitHub</a>
+		</header>
+
+		<main class="layout">
+			<form id="settings" class="panel" autocomplete="off">
+				<!-- vyplní main.js -->
+			</form>
+
+			<section class="stage">
+				<div class="viewer-wrap">
+					<div id="viewer"></div>
+					<div class="viewer-tools">
+						<div class="seg" role="tablist">
+							<button type="button" data-view="tile" class="active">Kámen</button>
+							<button type="button" data-view="plate">Podložka</button>
+						</div>
+						<select id="plate-select" hidden></select>
+					</div>
+					<div id="status" class="status" aria-live="polite"></div>
+				</div>
+
+				<div class="tiles-head">
+					<h2>Kameny</h2>
+					<span id="summary"></span>
+				</div>
+				<div id="tile-list" class="tile-list"></div>
+
+				<div class="actions">
+					<button type="button" id="dl-tile" class="btn">Stáhnout vybraný kámen</button>
+					<button type="button" id="dl-set" class="btn primary">Stáhnout celou sadu (ZIP)</button>
+				</div>
+				<p class="hint" id="hint"></p>
+			</section>
+		</main>
+	</body>
+</html>
