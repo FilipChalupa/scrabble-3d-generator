@@ -385,7 +385,7 @@ button:focus-visible {
 .chip .c {
 	position: absolute;
 	left: 4px;
-	top: 1px;
+	bottom: 2px;
 	font-size: 9px;
 	color: #7a6d5d;
 }
