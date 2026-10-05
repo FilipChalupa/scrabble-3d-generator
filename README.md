@@ -20,6 +20,7 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
 - tipy pro slicer: kam vložit výměnu filamentu, žehlení, kontrola násobků výšky vrstvy
 - přibalené fonty s diakritikou (DejaVu, Liberation) nebo vlastní TTF/OTF/WOFF (zapamatuje se)
 - upozornění na znaky, které font neobsahuje, a na písmena přesahující okraj kamene
+- tisk celé sady (i víc sad najednou), nebo jen vybraných kamenů – náhrada ztracených či doplnění sady
 - rozmístění kamenů na podložky podle tiskárny (Bambu Lab, Prusa, Creality, vlastní rozměr)
 - volitelný tisk lícem dolů (hladký líc z texturované / hladké podložky), náhled jde otočit a ukázat spodek
 - export:

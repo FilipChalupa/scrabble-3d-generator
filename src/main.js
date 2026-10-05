@@ -32,7 +32,15 @@ const GROUPS = [
 				help: 'Řádek = písmeno, body, počet. Podtržítko _ je žolík.',
 				def: PRESETS.cs.tiles.trim(),
 			},
-			{ id: 'sets', type: 'number', label: 'Počet sad', min: 1, max: 20, step: 1, def: 1 },
+			{
+				id: 'printMode',
+				type: 'select',
+				label: 'Tisknout',
+				options: { set: 'Celou sadu', selection: 'Jen vybrané kameny' },
+				def: 'set',
+				help: 'Výběr se hodí jako náhrada ztracených kamenů nebo doplnění sady – počty nastavíte pod kameny.',
+			},
+			{ id: 'sets', type: 'number', label: 'Počet sad', min: 1, max: 20, step: 1, def: 1, when: (s) => s.printMode === 'set' },
 		],
 	},
 	{
@@ -121,7 +129,10 @@ function loadSettings() {
 	try {
 		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
 		for (const k of Object.keys(s)) if (k in saved) s[k] = saved[k]
-	} catch {}
+		s.selection = saved.selection && typeof saved.selection === 'object' ? saved.selection : {}
+	} catch {
+		s.selection = {}
+	}
 	return s
 }
 
@@ -379,12 +390,32 @@ function tileList() {
 	return parseTiles(settings.tiles)
 }
 
+const selectionMode = () => settings.printMode === 'selection'
+const selectedCount = (t) => settings.selection[tileKey(t)] || 0
+
+// Kameny k tisku: celá sada (× počet sad), nebo jen vybrané počty.
 function expandedTiles() {
 	const list = []
+	if (selectionMode()) {
+		for (const t of tileList()) for (let i = 0; i < selectedCount(t); i++) list.push(t)
+		return list
+	}
 	for (let s = 0; s < settings.sets; s++) {
 		for (const t of tileList()) for (let i = 0; i < t.count; i++) list.push(t)
 	}
 	return list
+}
+
+function setSelection(t, n, button) {
+	const k = tileKey(t)
+	n = Math.max(0, Math.min(99, n))
+	if (n) settings.selection[k] = n
+	else delete settings.selection[k]
+	onChange(false)
+	// Seznam se překreslil – vrátíme fokus na stejné tlačítko (ovládání klávesnicí).
+	const again = document.querySelector(`[data-step="${CSS.escape(`${k}|${button}`)}"]`)
+	if (again && !again.disabled) again.focus()
+	else document.querySelector(`[data-step="${CSS.escape(`${k}|plus`)}"]`)?.focus()
 }
 
 // Rozmístění na podložky; neúplná poslední řada je vycentrovaná.
@@ -540,6 +571,7 @@ function renderTileList() {
 	const list = tileList()
 	if (selected >= list.length) selected = 0
 	const el = document.getElementById('tile-list')
+	el.classList.toggle('selecting', selectionMode())
 	el.replaceChildren(
 		...list.map((t, i) => {
 			const b = document.createElement('button')
@@ -557,16 +589,49 @@ function renderTileList() {
 				setView('tile')
 				renderTileList()
 			})
-			return b
+			if (!selectionMode()) return b
+
+			const cell = document.createElement('div')
+			cell.className = 'cell'
+			const n = selectedCount(t)
+			const stepper = document.createElement('div')
+			stepper.className = 'stepper' + (n ? ' on' : '')
+			const minus = document.createElement('button')
+			minus.type = 'button'
+			minus.textContent = '−'
+			minus.disabled = !n
+			minus.setAttribute('aria-label', `Ubrat ${letterName(t)}`)
+			minus.dataset.step = `${tileKey(t)}|minus`
+			minus.addEventListener('click', () => setSelection(t, n - 1, 'minus'))
+			const count = document.createElement('span')
+			count.textContent = n
+			count.setAttribute('aria-label', `Vybráno ${letterName(t)}: ${n}`)
+			const plus = document.createElement('button')
+			plus.type = 'button'
+			plus.textContent = '+'
+			plus.setAttribute('aria-label', `Přidat ${letterName(t)}`)
+			plus.dataset.step = `${tileKey(t)}|plus`
+			plus.addEventListener('click', () => setSelection(t, n + 1, 'plus'))
+			stepper.append(minus, count, plus)
+			cell.append(b, stepper)
+			return cell
 		}),
 	)
+	document.getElementById('selection-tools').hidden = !selectionMode()
 }
+
+// České skloňování podle počtu: 1 kámen, 2–4 kameny, 0 a 5+ kamenů.
+const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ? few : many}`
+const tilesWord = (n) => plural(n, 'kámen', 'kameny', 'kamenů')
 
 function renderSummary() {
 	const total = expandedTiles().length
 	const n = plates().length
-	const word = n === 1 ? 'podložka' : n >= 2 && n <= 4 ? 'podložky' : 'podložek'
-	document.getElementById('summary').textContent = `${total} kamenů · ${n} ${word}`
+	document.getElementById('summary').textContent =
+		`${selectionMode() ? 'vybráno ' : ''}${tilesWord(total)} · ${plural(n, 'podložka', 'podložky', 'podložek')}`
+	const dl = document.getElementById('dl-set')
+	dl.textContent = selectionMode() ? 'Stáhnout vybrané (ZIP)' : 'Stáhnout celou sadu (ZIP)'
+	dl.disabled = total === 0
 
 	const sel = document.getElementById('plate-select')
 	sel.replaceChildren(...Array.from({ length: n }, (_, i) => new Option(`Podložka ${i + 1} / ${n}`, String(i))))
@@ -699,7 +764,7 @@ async function redraw() {
 		drawScene()
 		if (!(await ensureTiles(tileList())) || seq !== drawSeq) return
 		renderTips()
-		setStatus('')
+		setStatus(view === 'plate' && !expandedTiles().length ? 'Nejsou vybrané žádné kameny.' : '')
 	} catch (err) {
 		console.error(err)
 		if (seq === drawSeq) setStatus(`Chyba při generování: ${err.message}`, true)
@@ -723,8 +788,7 @@ function onChange(geometry = true) {
 	renderSummary()
 	renderTips()
 	clearTimeout(timer)
-	if (geometry) timer = setTimeout(redraw, 150)
-	else drawScene()
+	timer = setTimeout(redraw, geometry ? 150 : 0)
 }
 
 // ---------- Export ----------
@@ -791,7 +855,7 @@ function downloadSet(e) {
 		`Kámen: ${settings.size} × ${settings.size} × ${settings.thickness} mm`,
 		`Tisk lícem dolů: ${effectiveFaceDown() ? 'ano' : 'ne'}`,
 		'',
-		...groups.map((g) => `${g.prefix}: ${g.placed.length} kamenů – ${g.placed.map((p) => p.letter).join(' ')}`),
+		...groups.map((g) => `${g.prefix}: ${tilesWord(g.placed.length)} – ${g.placed.map((p) => p.letter).join(' ')}`),
 		'',
 		'Tipy pro tisk:',
 		...slicerTips().map((t) => `- ${t.text}`),
@@ -814,6 +878,14 @@ document.getElementById('flip').addEventListener('click', () => {
 	applyFlip()
 })
 document.getElementById('dl-tile').addEventListener('click', downloadTile)
+document.getElementById('select-all').addEventListener('click', () => {
+	settings.selection = Object.fromEntries(tileList().map((t) => [tileKey(t), t.count]))
+	onChange(false)
+})
+document.getElementById('select-none').addEventListener('click', () => {
+	settings.selection = {}
+	onChange(false)
+})
 document.getElementById('dl-set').addEventListener('click', downloadSet)
 
 renderTileList()
