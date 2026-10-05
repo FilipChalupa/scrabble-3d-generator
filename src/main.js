@@ -54,6 +54,7 @@ const GROUPS = [
 			{ id: 'size', type: 'number', label: 'Strana', unit: 'mm', min: 8, max: 50, step: 0.5, def: 19 },
 			{ id: 'thickness', type: 'number', label: 'Tloušťka', unit: 'mm', min: 1.5, max: 12, step: 0.1, def: 4 },
 			{ id: 'radius', type: 'number', label: 'Zaoblení rohů', unit: 'mm', min: 0, max: 6, step: 0.1, def: 1.5 },
+			{ id: 'chamfer', type: 'number', label: 'Zkosení horní hrany', unit: 'mm', min: 0, max: 2, step: 0.1, def: 0.4 },
 		],
 	},
 	{
@@ -143,7 +144,7 @@ const hasMark = () => settings.markText.trim() !== ''
 
 function geometryParams() {
 	const p = {}
-	for (const k of ['size', 'thickness', 'radius', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments', 'markText', 'markDepth']) {
+	for (const k of ['size', 'thickness', 'radius', 'chamfer', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments', 'markText', 'markDepth']) {
 		p[k] = settings[k]
 	}
 	for (const k of PERCENT) p[k] = settings[k] / 100

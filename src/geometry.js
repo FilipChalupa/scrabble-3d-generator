@@ -389,6 +389,17 @@ function walls(out, contour, z0, z1) {
 	}
 }
 
+// Šikmý pás mezi dvěma obrysy se stejným počtem bodů (zkosení hrany).
+function band(out, lower, upper, z0, z1) {
+	for (let i = 0; i < lower.length; i++) {
+		const j = (i + 1) % lower.length
+		const [ax, ay] = lower[i], [bx, by] = lower[j]
+		const [cx, cy] = upper[j], [dx, dy] = upper[i]
+		out.push(ax, ay, z0, bx, by, z0, cx, cy, z1)
+		out.push(ax, ay, z0, cx, cy, z1, dx, dy, z1)
+	}
+}
+
 function polyWalls(out, polys, z0, z1) {
 	for (const { outer, holes } of polys) {
 		walls(out, outer, z0, z1)
@@ -414,8 +425,14 @@ export function buildTile(layout, p) {
 	const T = p.thickness
 	const d = Math.min(p.depth, T - 0.2)
 	const outline = oriented(roundedRect(p.size, p.radius), true)
-	const clip = roundedRect(p.size - 2 * p.edgeMargin, Math.max(0, p.radius - p.edgeMargin))
-	const { letters, rest } = regions(outline, layout, clip)
+	// Zkosení horní hrany: horní plocha je o c menší a s obrysem ji spojuje šikmý pás.
+	// Oba obrysy mají stejný počet bodů, aby šly propojit bod po bodu.
+	const c = Math.max(0, Math.min(p.chamfer ?? 0, T - d - 0.4, p.size / 4))
+	const r = Math.min(p.radius, p.size / 2 - 0.01)
+	const top = c > 0 ? oriented(roundedRect(p.size - 2 * c, r >= 0.01 ? Math.max(r - c, 0.05) : 0), true) : outline
+	const margin = Math.max(p.edgeMargin, c + 0.3)
+	const clip = roundedRect(p.size - 2 * margin, Math.max(0, p.radius - margin))
+	const { letters, rest } = regions(top, layout, clip)
 	const outlinePoly = [{ outer: outline, holes: [] }]
 	const markDepth = Math.min(p.markDepth ?? 0.4, (p.style === 'raised' ? T : T - d) - 0.6)
 	const mark = layout.mark?.length && markDepth > 0.05 ? regions(outline, { letter: layout.mark, value: [] }, clip) : null
@@ -433,10 +450,16 @@ export function buildTile(layout, p) {
 	// První oblast doplňku je samotný obrys kamene – jeho stěny tvoří vnější plášť.
 	const restInner = rest.map((r, i) => (i === 0 ? { outer: null, holes: r.holes } : r))
 
+	// Boční plášť včetně případného zkosení.
+	const sides = (out) => {
+		walls(out, outline, 0, T - c)
+		if (c > 0) band(out, outline, top, T - c, T)
+	}
+
 	const body = []
 	const accent = []
 	bottom(body)
-	walls(body, outline, 0, T)
+	sides(body)
 	cap(body, rest, T, true)
 
 	if (p.style === 'raised') {
@@ -444,8 +467,8 @@ export function buildTile(layout, p) {
 		cap(accent, letters, T + p.height, true)
 		const slab = []
 		bottom(slab)
-		walls(slab, outline, 0, T)
-		cap(slab, outlinePoly, T, true)
+		sides(slab)
+		cap(slab, [{ outer: top, holes: [] }], T, true)
 		return {
 			body,
 			accent,

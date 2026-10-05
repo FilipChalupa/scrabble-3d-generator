@@ -14,6 +14,7 @@ const PARAMS = {
 	size: 19,
 	thickness: 4,
 	radius: 1.5,
+	chamfer: 0.4,
 	depth: 0.6,
 	height: 0.6,
 	letterSize: 0.45,
@@ -111,10 +112,21 @@ test('ostatní fonty, značka na spodku a nula na žolíku', () => {
 	}
 })
 
+test('zkosení horní hrany funguje i s ostrými a velkými rohy', () => {
+	for (const style of ['engraved', 'raised', 'inlay']) {
+		for (const [radius, chamfer] of [[0, 0.5], [0.3, 0.8], [1.5, 0], [4, 1.2]]) {
+			const p = { ...PARAMS, style, radius, chamfer, markText: 'X' }
+			const b = buildTile(layoutTile(fonts['dejavu-sans'], 'Ř', 4, p), p)
+			assertSolid(b.body.concat(b.accent), `${style} r=${radius} c=${chamfer}`)
+			if (b.parts) assertSolid(b.parts.body, `${style} r=${radius} c=${chamfer} (kámen)`)
+		}
+	}
+})
+
 test('vyrytý kámen má menší objem než plný a vystouplý větší', () => {
 	const solid = 19 * 19 * 4
 	const vol = (style) => {
-		const p = { ...PARAMS, style }
+		const p = { ...PARAMS, style, chamfer: 0 }
 		const b = buildTile(layoutTile(fonts['dejavu-sans'], 'M', 3, p), p)
 		return analyze(Float32Array.from(b.body.concat(b.accent))).volume
 	}

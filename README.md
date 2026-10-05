@@ -14,7 +14,7 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
   - **vyrytá** – jedna barva, písmena jsou prohlubně v kameni
   - **zapuštěná v rovině** – dvoubarevný tisk (AMS / MMU), povrch kamene je hladký
   - **vystouplá** – písmena vystupují nad povrch
-- nastavitelné rozměry kamene, zaoblení, velikost a posun písmene i bodové hodnoty
+- nastavitelné rozměry kamene, zaoblení rohů, zkosení horní hrany, velikost a posun písmene i bodové hodnoty
 - volitelná nula na žolíku, aby byl poznat vršek kamene
 - značka vyrytá na spodku kamene (iniciály, symbol) pro odlišení sad
 - tipy pro slicer: kam vložit výměnu filamentu, žehlení, kontrola násobků výšky vrstvy
