@@ -1,6 +1,6 @@
 # Scrabble 3D generátor
 
-Mini webová aplikace, která generuje kameny do hry Scrabble jako 3D modely pro tisk na 3D tiskárně.
+Mini webová aplikace (česky i anglicky), která generuje kameny do hry Scrabble jako 3D modely pro tisk na 3D tiskárně.
 Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potřeba.
 
 **👉 https://filipchalupa.cz/scrabble-3d-generator/**
@@ -71,6 +71,7 @@ Knihovny ([three.js](https://threejs.org/), [opentype.js](https://opentype.js.or
 - `src/geometry.js` – převod glyfů na obrysy, sjednocení a vytažení do uzavřené 3D sítě
 - `src/export.js` – zápis binárního STL a 3MF
 - `src/presets.js` – rozložení písmen, fonty, tiskárny
+- `src/i18n.js` – překlady rozhraní (čeština, angličtina)
 - `src/worker.js` – Web Worker, který staví kameny a exportuje mimo hlavní vlákno
 - `src/main.js` – formulář, 3D náhled a rozmístění na podložky
 

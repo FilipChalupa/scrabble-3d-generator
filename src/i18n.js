@@ -1,0 +1,301 @@
+// Překlady rozhraní. Klíče polí formuláře: g.<skupina>, f.<pole>, h.<pole> (nápověda), o.<pole>.<hodnota>.
+
+const cs = {
+	'app.title': 'Scrabble 3D generátor',
+	'app.description': 'Generátor kamenů do hry Scrabble pro 3D tisk – STL a 3MF přímo v prohlížeči.',
+
+	'g.set': 'Sada',
+	'g.font': 'Písmo',
+	'g.size': 'Rozměry kamene',
+	'g.style': 'Styl písma na kameni',
+	'g.letter': 'Písmeno',
+	'g.value': 'Bodová hodnota',
+	'g.mark': 'Značka na spodku',
+	'g.print': 'Tisk',
+
+	'f.preset': 'Předvolba',
+	'o.preset.custom': 'Vlastní',
+	'f.tiles': 'Kameny',
+	'h.tiles': 'Řádek = písmeno, body, počet. Podtržítko _ je žolík.',
+	'f.printMode': 'Tisknout',
+	'o.printMode.set': 'Celou sadu',
+	'o.printMode.selection': 'Jen vybrané kameny',
+	'h.printMode': 'Výběr se hodí jako náhrada ztracených kamenů nebo doplnění sady – počty nastavíte pod kameny.',
+	'f.sets': 'Počet sad',
+	'f.font': 'Font',
+	'f.fontFile': 'Nahrát vlastní font (TTF / OTF / WOFF)',
+	'f.size': 'Strana',
+	'f.thickness': 'Tloušťka',
+	'f.radius': 'Zaoblení rohů',
+	'f.chamfer': 'Zkosení horní hrany',
+	'f.style': 'Provedení',
+	'o.style.engraved': 'Vyrytá (jedna barva)',
+	'o.style.inlay': 'Zapuštěná v rovině (dvě barvy)',
+	'o.style.raised': 'Vystouplá',
+	'f.depth': 'Hloubka písmen',
+	'f.height': 'Výška písmen',
+	'f.letterSize': 'Výška verzálky',
+	'f.letterMaxWidth': 'Max. šířka',
+	'f.letterOffsetX': 'Posun vodorovně',
+	'f.letterOffsetY': 'Posun svisle',
+	'f.showValue': 'Zobrazit body',
+	'f.showZero': 'Nula na žolíku (aby byl poznat vršek)',
+	'f.valueSize': 'Velikost',
+	'f.valueMargin': 'Odsazení od hrany',
+	'f.markText': 'Text nebo symbol',
+	'h.markText': 'Např. iniciály nebo ★ – odliší kameny různých sad. Prázdné = bez značky.',
+	'f.markSize': 'Velikost',
+	'f.markDepth': 'Hloubka',
+	'f.bed': 'Tiskárna',
+	'o.bed.custom': 'Vlastní rozměr',
+	'f.bedX': 'Podložka X',
+	'f.bedY': 'Podložka Y',
+	'f.layerHeight': 'Výška vrstvy',
+	'f.gap': 'Mezera mezi kameny',
+	'f.faceDown': 'Tisknout lícem dolů',
+	'f.bodyColor': 'Barva kamene',
+	'f.letterColor': 'Barva písmen',
+	'f.curveSegments': 'Hladkost křivek',
+	'form.reset': 'Obnovit výchozí nastavení',
+
+	'ui.tile': 'Kámen',
+	'ui.plate': 'Podložka',
+	'ui.flip': 'Otočit',
+	'ui.flipTitle': 'Otočit náhled a ukázat spodek kamene',
+	'ui.tiles': 'Kameny',
+	'ui.selectAll': 'Vybrat celou sadu',
+	'ui.selectNone': 'Vynulovat',
+	'ui.downloadTile': 'Stáhnout vybraný kámen',
+	'ui.downloadSet': 'Stáhnout celou sadu (ZIP)',
+	'ui.downloadSelection': 'Stáhnout vybrané (ZIP)',
+	'ui.share': 'Sdílet nastavení',
+	'ui.tips': 'Tipy pro tisk',
+	'ui.language': 'Jazyk',
+	'ui.plateOf': 'Podložka {i} / {n}',
+	'ui.plateSelect': 'Podložka',
+	'ui.selected': 'vybráno',
+	'ui.blank': 'Žolík',
+	'ui.points': 'b.',
+	'ui.pieces': 'ks',
+	'ui.add': 'Přidat {x}',
+	'ui.remove': 'Ubrat {x}',
+	'ui.selectedCount': 'Vybráno {x}: {n}',
+	'ui.custom': 'Vlastní: {name}',
+	'ui.viewPrinted': 'Lícem dolů, jak se tiskne',
+	'ui.viewBottom': 'Pohled na spodek',
+	'ui.loadError': 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.',
+
+	'n.tiles': ['kámen', 'kameny', 'kamenů'],
+	'n.plates': ['podložka', 'podložky', 'podložek'],
+
+	'status.generating': 'Generuji…',
+	'status.loadingFont': 'Načítám písmo…',
+	'status.fontError': 'Písmo se nepodařilo načíst: {msg}',
+	'status.workerError': 'Chyba generátoru: {msg}',
+	'status.buildError': 'Chyba při generování: {msg}',
+	'status.exportError': 'Export selhal: {msg}',
+	'status.noSelection': 'Nejsou vybrané žádné kameny.',
+	'status.shared': 'Odkaz na toto nastavení je ve schránce.',
+	'status.sharedFont': ' Vlastní font se nesdílí – příjemce uvidí výchozí písmo.',
+	'status.sharePrompt': 'Zkopírujte odkaz na toto nastavení:',
+	'status.fromLink': 'Načteno nastavení ze sdíleného odkazu.',
+	'status.progressPlate': 'Generuji podložku {i} / {n}…',
+	'status.zipping': 'Balím ZIP…',
+
+	'tip.missing': 'Zvolený font neobsahuje znaky {chars} – na kamenech by chyběly. Zvolte jiný font (např. DejaVu Sans).',
+	'tip.overflow': 'Přesahuje okraj kamene a bude oříznuto: {list}. Zmenšete písmeno, hodnotu či značku nebo upravte posun.',
+	'tip.engraved': 'Vyrytá písmena se tisknou v jedné barvě. Pro kontrast lze prohlubně po tisku zatřít barvou nebo voskovkou.',
+	'tip.inlay':
+		'Zapuštěná písmena vyžadují vícebarevnou tiskárnu (AMS, MMU…) – kámen i písmena leží ve stejných vrstvách. Otevřete 3MF a dílům „Kámen“ a „Písmena“ přiřaďte různé filamenty.',
+	'tip.raised':
+		'Dvě barvy i na jednobarevné tiskárně: ve sliceru vložte výměnu filamentu (M600 / pauzu) na vrstvu {layer} ve výšce {z} – nad tloušťkou kamene {t} se tisknou už jen písmena. Pro vícebarevné tiskárny je ve 3MF samostatný díl „Písmena“.',
+	'tip.faceDown':
+		'Tiskne se lícem dolů: líc převezme povrch podložky (hladká PEI = lesk, texturovaná = mat). Zapněte kompenzaci rozlití první vrstvy (elephant foot), ať písmena zůstanou ostrá.',
+	'tip.faceUp': 'Tiskne se lícem nahoru: pro hladký povrch zapněte žehlení (ironing) horní vrstvy.',
+	'tip.layers': '{label} {v} není násobkem výšky vrstvy {lh} – doporučuji {rec}.',
+	'tip.mark':
+		'Značka na spodku leží na podložce a tiskne se jako krátké přemostění – stačí mělká (1–2 vrstvy) a jednoduchý tvar. V náhledu ji uvidíte tlačítkem „Otočit“.',
+	'check.thickness': 'Tloušťka kamene',
+	'check.height': 'Výška písmen',
+	'check.depth': 'Hloubka písmen',
+	'check.mark': 'Hloubka značky',
+
+	'file.set': 'scrabble-sada',
+	'file.plate': 'podlozka',
+	'file.blank': 'zolik',
+	'file.body': 'kamen',
+	'file.letters': 'pismena',
+	'part.body': 'Kámen',
+	'part.letters': 'Písmena',
+	'readme.style': 'Provedení',
+	'readme.tile': 'Kámen',
+	'readme.faceDown': 'Tisk lícem dolů',
+	'readme.yes': 'ano',
+	'readme.no': 'ne',
+	'readme.tips': 'Tipy pro tisk:',
+}
+
+const en = {
+	'app.title': 'Scrabble 3D Generator',
+	'app.description': 'Generate Scrabble tiles for 3D printing – STL and 3MF right in your browser.',
+
+	'g.set': 'Set',
+	'g.font': 'Font',
+	'g.size': 'Tile size',
+	'g.style': 'Lettering style',
+	'g.letter': 'Letter',
+	'g.value': 'Point value',
+	'g.mark': 'Bottom mark',
+	'g.print': 'Printing',
+
+	'f.preset': 'Preset',
+	'o.preset.custom': 'Custom',
+	'f.tiles': 'Tiles',
+	'h.tiles': 'One line = letter, points, count. Underscore _ is a blank.',
+	'f.printMode': 'Print',
+	'o.printMode.set': 'Whole set',
+	'o.printMode.selection': 'Selected tiles only',
+	'h.printMode': 'Handy for replacing lost tiles or extending a set – set the counts below the tiles.',
+	'f.sets': 'Number of sets',
+	'f.font': 'Font',
+	'f.fontFile': 'Upload your own font (TTF / OTF / WOFF)',
+	'f.size': 'Side',
+	'f.thickness': 'Thickness',
+	'f.radius': 'Corner radius',
+	'f.chamfer': 'Top edge chamfer',
+	'f.style': 'Style',
+	'o.style.engraved': 'Engraved (one colour)',
+	'o.style.inlay': 'Flush inlay (two colours)',
+	'o.style.raised': 'Raised',
+	'f.depth': 'Letter depth',
+	'f.height': 'Letter height',
+	'f.letterSize': 'Cap height',
+	'f.letterMaxWidth': 'Max. width',
+	'f.letterOffsetX': 'Horizontal offset',
+	'f.letterOffsetY': 'Vertical offset',
+	'f.showValue': 'Show points',
+	'f.showZero': 'Zero on blanks (shows which way is up)',
+	'f.valueSize': 'Size',
+	'f.valueMargin': 'Distance from edge',
+	'f.markText': 'Text or symbol',
+	'h.markText': 'E.g. initials or ★ – tells tiles of different sets apart. Empty = no mark.',
+	'f.markSize': 'Size',
+	'f.markDepth': 'Depth',
+	'f.bed': 'Printer',
+	'o.bed.custom': 'Custom size',
+	'f.bedX': 'Bed X',
+	'f.bedY': 'Bed Y',
+	'f.layerHeight': 'Layer height',
+	'f.gap': 'Gap between tiles',
+	'f.faceDown': 'Print face down',
+	'f.bodyColor': 'Tile colour',
+	'f.letterColor': 'Letter colour',
+	'f.curveSegments': 'Curve smoothness',
+	'form.reset': 'Reset to defaults',
+
+	'ui.tile': 'Tile',
+	'ui.plate': 'Plate',
+	'ui.flip': 'Flip',
+	'ui.flipTitle': 'Flip the preview to see the bottom of the tile',
+	'ui.tiles': 'Tiles',
+	'ui.selectAll': 'Select whole set',
+	'ui.selectNone': 'Clear',
+	'ui.downloadTile': 'Download selected tile',
+	'ui.downloadSet': 'Download whole set (ZIP)',
+	'ui.downloadSelection': 'Download selection (ZIP)',
+	'ui.share': 'Share settings',
+	'ui.tips': 'Printing tips',
+	'ui.language': 'Language',
+	'ui.plateOf': 'Plate {i} / {n}',
+	'ui.plateSelect': 'Plate',
+	'ui.selected': 'selected',
+	'ui.blank': 'Blank',
+	'ui.points': 'pts',
+	'ui.pieces': 'pcs',
+	'ui.add': 'Add {x}',
+	'ui.remove': 'Remove {x}',
+	'ui.selectedCount': 'Selected {x}: {n}',
+	'ui.custom': 'Custom: {name}',
+	'ui.viewPrinted': 'Face down, as printed',
+	'ui.viewBottom': 'Bottom view',
+	'ui.loadError': 'Could not load libraries. Check your internet connection and reload the page.',
+
+	'n.tiles': ['tile', 'tiles'],
+	'n.plates': ['plate', 'plates'],
+
+	'status.generating': 'Generating…',
+	'status.loadingFont': 'Loading font…',
+	'status.fontError': 'Could not load the font: {msg}',
+	'status.workerError': 'Generator error: {msg}',
+	'status.buildError': 'Generation failed: {msg}',
+	'status.exportError': 'Export failed: {msg}',
+	'status.noSelection': 'No tiles selected.',
+	'status.shared': 'A link to these settings is on your clipboard.',
+	'status.sharedFont': ' Custom fonts are not shared – the recipient will see the default font.',
+	'status.sharePrompt': 'Copy the link to these settings:',
+	'status.fromLink': 'Loaded settings from a shared link.',
+	'status.progressPlate': 'Generating plate {i} / {n}…',
+	'status.zipping': 'Packing ZIP…',
+
+	'tip.missing': 'The selected font has no {chars} – those characters would be missing from the tiles. Choose another font (e.g. DejaVu Sans).',
+	'tip.overflow': 'Reaches over the tile edge and will be cut off: {list}. Make the letter, value or mark smaller or adjust the offset.',
+	'tip.engraved': 'Engraved letters print in one colour. For contrast, fill the recesses with paint or wax after printing.',
+	'tip.inlay':
+		'Flush letters need a multi-colour printer (AMS, MMU…) – tile and letters share the same layers. Open the 3MF and assign different filaments to the “Tile” and “Letters” parts.',
+	'tip.raised':
+		'Two colours even on a single-colour printer: in your slicer add a filament change (M600 / pause) at layer {layer}, height {z} – above the tile thickness of {t} only the letters are printed. For multi-colour printers the 3MF has a separate “Letters” part.',
+	'tip.faceDown':
+		'Printed face down: the face takes on the bed surface (smooth PEI = glossy, textured = matte). Enable first-layer (elephant foot) compensation to keep letters crisp.',
+	'tip.faceUp': 'Printed face up: enable ironing of the top layer for a smooth surface.',
+	'tip.layers': '{label} {v} is not a multiple of the layer height {lh} – {rec} recommended.',
+	'tip.mark':
+		'The bottom mark sits on the bed and prints as a short bridge – keep it shallow (1–2 layers) and simple. Use “Flip” to see it in the preview.',
+	'check.thickness': 'Tile thickness',
+	'check.height': 'Letter height',
+	'check.depth': 'Letter depth',
+	'check.mark': 'Mark depth',
+
+	'file.set': 'scrabble-set',
+	'file.plate': 'plate',
+	'file.blank': 'blank',
+	'file.body': 'tile',
+	'file.letters': 'letters',
+	'part.body': 'Tile',
+	'part.letters': 'Letters',
+	'readme.style': 'Style',
+	'readme.tile': 'Tile',
+	'readme.faceDown': 'Printed face down',
+	'readme.yes': 'yes',
+	'readme.no': 'no',
+	'readme.tips': 'Printing tips:',
+}
+
+export const LANGUAGES = { cs: { name: 'Čeština', dict: cs }, en: { name: 'English', dict: en } }
+
+export function defaultLanguage() {
+	const nav = (navigator.languages || [navigator.language || '']).map((l) => l.toLowerCase())
+	return nav.some((l) => l.startsWith('cs') || l.startsWith('sk')) ? 'cs' : 'en'
+}
+
+let lang = 'cs'
+
+export function setLanguage(l) {
+	lang = LANGUAGES[l] ? l : 'cs'
+	document.documentElement.lang = lang
+}
+
+export const getLanguage = () => lang
+
+export function t(key, vars = {}) {
+	let s = LANGUAGES[lang].dict[key] ?? cs[key] ?? key
+	for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v)
+	return s
+}
+
+// Počet se slovem ve správném tvaru („3 kameny“, „5 tiles“).
+export function count(n, key) {
+	const forms = LANGUAGES[lang].dict[key] ?? cs[key]
+	const rule = new Intl.PluralRules(lang).select(n)
+	const word = lang === 'cs' ? forms[rule === 'one' ? 0 : rule === 'few' ? 1 : 2] : forms[rule === 'one' ? 0 : 1]
+	return `${n} ${word}`
+}

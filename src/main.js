@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { PRESETS, FONTS, BEDS, parseTiles } from './presets.js'
+import { t, count, setLanguage, getLanguage, defaultLanguage, LANGUAGES } from './i18n.js'
 
 const STORAGE_KEY = 'scrabble3d:v4'
 const EDGE_MARGIN = 0.5
@@ -8,115 +9,104 @@ const BED_MARGIN = 5
 
 // ---------- Nastavení ----------
 
-const STYLES = {
-	engraved: 'Vyrytá (jedna barva)',
-	inlay: 'Zapuštěná v rovině (dvě barvy)',
-	raised: 'Vystouplá',
-}
-
 const GROUPS = [
 	{
-		title: 'Sada',
+		id: 'set',
 		fields: [
 			{
 				id: 'preset',
 				type: 'select',
-				label: 'Předvolba',
-				options: { ...Object.fromEntries(Object.entries(PRESETS).map(([k, v]) => [k, v.name])), custom: 'Vlastní' },
+				options: { ...Object.fromEntries(Object.entries(PRESETS).map(([k, v]) => [k, v.name])), custom: null },
 				def: 'cs',
 			},
 			{
 				id: 'tiles',
 				type: 'textarea',
-				label: 'Kameny',
-				help: 'Řádek = písmeno, body, počet. Podtržítko _ je žolík.',
+				help: true,
 				def: PRESETS.cs.tiles.trim(),
 			},
 			{
 				id: 'printMode',
 				type: 'select',
-				label: 'Tisknout',
-				options: { set: 'Celou sadu', selection: 'Jen vybrané kameny' },
+				options: { set: null, selection: null },
 				def: 'set',
-				help: 'Výběr se hodí jako náhrada ztracených kamenů nebo doplnění sady – počty nastavíte pod kameny.',
+				help: true,
 			},
-			{ id: 'sets', type: 'number', label: 'Počet sad', min: 1, max: 20, step: 1, def: 1, when: (s) => s.printMode === 'set' },
+			{ id: 'sets', type: 'number', min: 1, max: 20, step: 1, def: 1, when: (s) => s.printMode === 'set' },
 		],
 	},
 	{
-		title: 'Písmo',
+		id: 'font',
 		fields: [
 			{
 				id: 'font',
 				type: 'select',
-				label: 'Font',
 				options: Object.fromEntries(FONTS.map((f) => [f.id, f.name])),
 				def: FONTS[0].id,
 			},
-			{ id: 'fontFile', type: 'file', label: 'Nahrát vlastní font (TTF / OTF / WOFF)', accept: '.ttf,.otf,.woff' },
+			{ id: 'fontFile', type: 'file', accept: '.ttf,.otf,.woff' },
 		],
 	},
 	{
-		title: 'Rozměry kamene',
+		id: 'size',
 		fields: [
-			{ id: 'size', type: 'number', label: 'Strana', unit: 'mm', min: 8, max: 50, step: 0.5, def: 19 },
-			{ id: 'thickness', type: 'number', label: 'Tloušťka', unit: 'mm', min: 1.5, max: 12, step: 0.1, def: 4 },
-			{ id: 'radius', type: 'number', label: 'Zaoblení rohů', unit: 'mm', min: 0, max: 6, step: 0.1, def: 1.5 },
-			{ id: 'chamfer', type: 'number', label: 'Zkosení horní hrany', unit: 'mm', min: 0, max: 2, step: 0.1, def: 0.4 },
+			{ id: 'size', type: 'number', unit: 'mm', min: 8, max: 50, step: 0.5, def: 19 },
+			{ id: 'thickness', type: 'number', unit: 'mm', min: 1.5, max: 12, step: 0.1, def: 4 },
+			{ id: 'radius', type: 'number', unit: 'mm', min: 0, max: 6, step: 0.1, def: 1.5 },
+			{ id: 'chamfer', type: 'number', unit: 'mm', min: 0, max: 2, step: 0.1, def: 0.4 },
 		],
 	},
 	{
-		title: 'Styl písma na kameni',
+		id: 'style',
 		fields: [
-			{ id: 'style', type: 'select', label: 'Provedení', options: STYLES, def: 'engraved' },
-			{ id: 'depth', type: 'number', label: 'Hloubka písmen', unit: 'mm', min: 0.2, max: 4, step: 0.04, def: 0.6, when: (s) => s.style !== 'raised' },
-			{ id: 'height', type: 'number', label: 'Výška písmen', unit: 'mm', min: 0.2, max: 4, step: 0.04, def: 0.6, when: (s) => s.style === 'raised' },
+			{ id: 'style', type: 'select', options: { engraved: null, inlay: null, raised: null }, def: 'engraved' },
+			{ id: 'depth', type: 'number', unit: 'mm', min: 0.2, max: 4, step: 0.04, def: 0.6, when: (s) => s.style !== 'raised' },
+			{ id: 'height', type: 'number', unit: 'mm', min: 0.2, max: 4, step: 0.04, def: 0.6, when: (s) => s.style === 'raised' },
 		],
 	},
 	{
-		title: 'Písmeno',
+		id: 'letter',
 		fields: [
-			{ id: 'letterSize', type: 'number', label: 'Výška verzálky', unit: '%', min: 15, max: 80, step: 1, def: 45 },
-			{ id: 'letterMaxWidth', type: 'number', label: 'Max. šířka', unit: '%', min: 20, max: 95, step: 1, def: 58 },
-			{ id: 'letterOffsetX', type: 'number', label: 'Posun vodorovně', unit: '%', min: -30, max: 30, step: 1, def: 0 },
-			{ id: 'letterOffsetY', type: 'number', label: 'Posun svisle', unit: '%', min: -30, max: 30, step: 1, def: 3 },
+			{ id: 'letterSize', type: 'number', unit: '%', min: 15, max: 80, step: 1, def: 45 },
+			{ id: 'letterMaxWidth', type: 'number', unit: '%', min: 20, max: 95, step: 1, def: 58 },
+			{ id: 'letterOffsetX', type: 'number', unit: '%', min: -30, max: 30, step: 1, def: 0 },
+			{ id: 'letterOffsetY', type: 'number', unit: '%', min: -30, max: 30, step: 1, def: 3 },
 		],
 	},
 	{
-		title: 'Bodová hodnota',
+		id: 'value',
 		fields: [
-			{ id: 'showValue', type: 'checkbox', label: 'Zobrazit body', def: true },
-			{ id: 'showZero', type: 'checkbox', label: 'Nula na žolíku (aby byl poznat vršek)', def: true, when: (s) => s.showValue },
-			{ id: 'valueSize', type: 'number', label: 'Velikost', unit: '%', min: 5, max: 40, step: 1, def: 19, when: (s) => s.showValue },
-			{ id: 'valueMargin', type: 'number', label: 'Odsazení od hrany', unit: 'mm', min: 0.5, max: 8, step: 0.1, def: 1.4, when: (s) => s.showValue },
+			{ id: 'showValue', type: 'checkbox', def: true },
+			{ id: 'showZero', type: 'checkbox', def: true, when: (s) => s.showValue },
+			{ id: 'valueSize', type: 'number', unit: '%', min: 5, max: 40, step: 1, def: 19, when: (s) => s.showValue },
+			{ id: 'valueMargin', type: 'number', unit: 'mm', min: 0.5, max: 8, step: 0.1, def: 1.4, when: (s) => s.showValue },
 		],
 	},
 	{
-		title: 'Značka na spodku',
+		id: 'mark',
 		fields: [
-			{ id: 'markText', type: 'text', label: 'Text nebo symbol', help: 'Např. iniciály nebo ★ – odliší kameny různých sad. Prázdné = bez značky.', def: '' },
-			{ id: 'markSize', type: 'number', label: 'Velikost', unit: '%', min: 10, max: 60, step: 1, def: 30, when: (s) => s.markText.trim() },
-			{ id: 'markDepth', type: 'number', label: 'Hloubka', unit: 'mm', min: 0.1, max: 2, step: 0.04, def: 0.4, when: (s) => s.markText.trim() },
+			{ id: 'markText', type: 'text', help: true, def: '' },
+			{ id: 'markSize', type: 'number', unit: '%', min: 10, max: 60, step: 1, def: 30, when: (s) => s.markText.trim() },
+			{ id: 'markDepth', type: 'number', unit: 'mm', min: 0.1, max: 2, step: 0.04, def: 0.4, when: (s) => s.markText.trim() },
 		],
 	},
 	{
-		title: 'Tisk',
+		id: 'print',
 		fields: [
 			{
 				id: 'bed',
 				type: 'select',
-				label: 'Tiskárna',
-				options: { ...Object.fromEntries(BEDS.map((b, i) => [String(i), b.name])), custom: 'Vlastní rozměr' },
+				options: { ...Object.fromEntries(BEDS.map((b, i) => [String(i), b.name])), custom: null },
 				def: '0',
 			},
-			{ id: 'bedX', type: 'number', label: 'Podložka X', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
-			{ id: 'bedY', type: 'number', label: 'Podložka Y', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
-			{ id: 'layerHeight', type: 'number', label: 'Výška vrstvy', unit: 'mm', min: 0.04, max: 0.4, step: 0.02, def: 0.2 },
-			{ id: 'gap', type: 'number', label: 'Mezera mezi kameny', unit: 'mm', min: 0.5, max: 20, step: 0.5, def: 3 },
-			{ id: 'faceDown', type: 'checkbox', label: 'Tisknout lícem dolů', def: false, when: (s) => s.style !== 'raised' },
-			{ id: 'bodyColor', type: 'color', label: 'Barva kamene', def: '#f1e3c4' },
-			{ id: 'letterColor', type: 'color', label: 'Barva písmen', def: '#2b2117' },
-			{ id: 'curveSegments', type: 'number', label: 'Hladkost křivek', min: 2, max: 16, step: 1, def: 6 },
+			{ id: 'bedX', type: 'number', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
+			{ id: 'bedY', type: 'number', unit: 'mm', min: 50, max: 1000, step: 1, def: 256, when: (s) => s.bed === 'custom' },
+			{ id: 'layerHeight', type: 'number', unit: 'mm', min: 0.04, max: 0.4, step: 0.02, def: 0.2 },
+			{ id: 'gap', type: 'number', unit: 'mm', min: 0.5, max: 20, step: 0.5, def: 3 },
+			{ id: 'faceDown', type: 'checkbox', def: false, when: (s) => s.style !== 'raised' },
+			{ id: 'bodyColor', type: 'color', def: '#f1e3c4' },
+			{ id: 'letterColor', type: 'color', def: '#2b2117' },
+			{ id: 'curveSegments', type: 'number', min: 2, max: 16, step: 1, def: 6 },
 		],
 	},
 ]
@@ -166,6 +156,19 @@ function loadSettings() {
 	// Předvolba určuje seznam kamenů (a případné opravy předvoleb se tak projeví i u uložených nastavení).
 	if (PRESETS[s.preset]) s.tiles = PRESETS[s.preset].tiles.trim()
 	s.fromLink = fromLink
+	if (!fromLink) {
+		try {
+			s.lang = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}').lang
+		} catch {}
+	}
+	if (!LANGUAGES[s.lang]) {
+		// První návštěva: jazyk podle prohlížeče a k němu odpovídající předvolba.
+		s.lang = defaultLanguage()
+		if (!fromLink && s.lang === 'en') {
+			s.preset = 'en'
+			s.tiles = PRESETS.en.tiles.trim()
+		}
+	}
 	return s
 }
 
@@ -175,6 +178,7 @@ function shareURL() {
 		if (!('def' in f) || settings[f.id] === f.def) continue
 		if (f.id === 'font' && settings.font === 'custom') continue // vlastní font nejde sdílet
 		if (f.id === 'tiles' && PRESETS[settings.preset]) continue // vyplyne z předvolby
+		if (f.id === 'lang') continue
 		diff[f.id] = settings[f.id]
 	}
 	if (selectionMode() && Object.keys(settings.selection).length) diff.selection = settings.selection
@@ -185,12 +189,12 @@ function shareURL() {
 
 async function share() {
 	const url = shareURL()
-	const note = settings.font === 'custom' ? ' Vlastní font se nesdílí – příjemce uvidí výchozí písmo.' : ''
+	const note = settings.font === 'custom' ? t('status.sharedFont') : ''
 	try {
 		await navigator.clipboard.writeText(url)
-		setStatus(`Odkaz na toto nastavení je ve schránce.${note}`, false, true)
+		setStatus(t('status.shared') + note, false, true)
 	} catch {
-		window.prompt('Zkopírujte odkaz na toto nastavení:', url)
+		window.prompt(t('status.sharePrompt'), url)
 	}
 }
 
@@ -230,7 +234,7 @@ const inputs = {}
 function buildForm() {
 	for (const g of GROUPS) {
 		const fs = document.createElement('fieldset')
-		fs.innerHTML = `<legend>${g.title}</legend>`
+		fs.innerHTML = `<legend>${t(`g.${g.id}`)}</legend>`
 		for (const f of g.fields) {
 			const row = document.createElement('label')
 			row.className = `field field-${f.type}`
@@ -238,7 +242,7 @@ function buildForm() {
 			let input
 			if (f.type === 'select') {
 				input = document.createElement('select')
-				for (const [value, label] of Object.entries(f.options)) input.add(new Option(label, value))
+				for (const [value, label] of Object.entries(f.options)) input.add(new Option(label ?? t(`o.${f.id}.${value}`), value))
 			} else if (f.type === 'textarea') {
 				input = document.createElement('textarea')
 				input.rows = 8
@@ -253,7 +257,7 @@ function buildForm() {
 
 			const label = document.createElement('span')
 			label.className = 'label'
-			label.textContent = f.label
+			label.textContent = t(`f.${f.id}`)
 			if (f.type === 'checkbox') {
 				row.append(input, label)
 			} else if (f.unit) {
@@ -269,7 +273,7 @@ function buildForm() {
 			}
 			if (f.help) {
 				const help = document.createElement('small')
-				help.textContent = f.help
+				help.textContent = t(`h.${f.id}`)
 				row.append(help)
 			}
 			fs.append(row)
@@ -280,7 +284,7 @@ function buildForm() {
 	const reset = document.createElement('button')
 	reset.type = 'button'
 	reset.className = 'btn link'
-	reset.textContent = 'Obnovit výchozí nastavení'
+	reset.textContent = t('form.reset')
 	reset.addEventListener('click', () => {
 		for (const f of FIELDS) if ('def' in f) settings[f.id] = f.def
 		writeForm()
@@ -288,9 +292,10 @@ function buildForm() {
 	})
 	form.append(reset)
 
-	form.addEventListener('input', (e) => readField(e.target, false))
-	form.addEventListener('change', (e) => readField(e.target, true))
 }
+
+form.addEventListener('input', (e) => readField(e.target, false))
+form.addEventListener('change', (e) => readField(e.target, true))
 
 function writeForm() {
 	for (const f of FIELDS) {
@@ -365,7 +370,7 @@ worker.onmessage = ({ data }) => {
 	if ('error' in data) p.reject(new Error(data.error))
 	else p.resolve(data.result)
 }
-worker.onerror = (e) => setStatus(`Chyba generátoru: ${e.message || 'nepodařilo se spustit'}`, true)
+worker.onerror = (e) => setStatus(t('status.workerError', { msg: e.message || '?' }), true)
 
 function call(type, payload, { transfer = [], onProgress } = {}) {
 	return new Promise((resolve, reject) => {
@@ -400,11 +405,11 @@ function setCustomFontOption(name) {
 		opt = new Option('', 'custom')
 		inputs.font.add(opt)
 	}
-	opt.textContent = `Vlastní: ${name}`
+	opt.textContent = t('ui.custom', { name })
 }
 
 async function loadFont(id) {
-	setStatus('Načítám písmo…')
+	setStatus(t('status.loadingFont'))
 	try {
 		if (id === 'custom') {
 			const stored = await fontStore('readonly', (s) => s.get('font')).catch(() => null)
@@ -422,7 +427,7 @@ async function loadFont(id) {
 		await call('font', { url: new URL(def.url, location.href).href, key: def.id })
 		fontKey = def.id
 	} catch (err) {
-		setStatus(`Písmo se nepodařilo načíst: ${err.message}`, true)
+		setStatus(t('status.fontError', { msg: err.message }), true)
 		throw err
 	}
 }
@@ -439,7 +444,7 @@ async function useCustomFont(file) {
 		inputs.font.value = 'custom'
 		onChange(true)
 	} catch (err) {
-		setStatus(`Font se nepodařilo načíst: ${err.message}`, true)
+		setStatus(t('status.fontError', { msg: err.message }), true)
 	}
 }
 
@@ -633,7 +638,7 @@ function setStatus(text, error = false, info = false) {
 
 const clearBusyStatus = () => statusKind === 'busy' && setStatus('')
 
-const letterName = (t) => (t.letter === '_' ? 'Žolík' : t.letter)
+const letterName = (tile) => (tile.letter === '_' ? t('ui.blank') : tile.letter)
 
 function renderTileList() {
 	const list = tileList()
@@ -641,17 +646,17 @@ function renderTileList() {
 	const el = document.getElementById('tile-list')
 	el.classList.toggle('selecting', selectionMode())
 	el.replaceChildren(
-		...list.map((t, i) => {
+		...list.map((tile, i) => {
 			const b = document.createElement('button')
 			b.type = 'button'
 			b.className = 'chip' + (i === selected ? ' active' : '')
 			b.setAttribute('aria-pressed', String(i === selected))
-			b.setAttribute('aria-label', `${letterName(t)}, ${t.value} b., ${t.count} ks`)
-			b.title = `${letterName(t)} · ${t.value} b. · ${t.count}×`
+			b.setAttribute('aria-label', `${letterName(tile)}, ${tile.value} ${t('ui.points')}, ${tile.count} ${t('ui.pieces')}`)
+			b.title = `${letterName(tile)} · ${tile.value} ${t('ui.points')} · ${tile.count}×`
 			b.innerHTML = `<span class="l" aria-hidden="true"></span><span class="v" aria-hidden="true"></span><span class="c" aria-hidden="true"></span>`
-			b.querySelector('.l').textContent = t.letter === '_' ? '' : t.letter
-			b.querySelector('.v').textContent = settings.showValue && (t.value > 0 || settings.showZero) ? t.value : ''
-			b.querySelector('.c').textContent = `${t.count}×`
+			b.querySelector('.l').textContent = tile.letter === '_' ? '' : tile.letter
+			b.querySelector('.v').textContent = settings.showValue && (tile.value > 0 || settings.showZero) ? tile.value : ''
+			b.querySelector('.c').textContent = `${tile.count}×`
 			b.addEventListener('click', () => {
 				selected = i
 				setView('tile')
@@ -661,26 +666,26 @@ function renderTileList() {
 
 			const cell = document.createElement('div')
 			cell.className = 'cell'
-			const n = selectedCount(t)
+			const n = selectedCount(tile)
 			const stepper = document.createElement('div')
 			stepper.className = 'stepper' + (n ? ' on' : '')
 			const minus = document.createElement('button')
 			minus.type = 'button'
 			minus.textContent = '−'
 			minus.disabled = !n
-			minus.setAttribute('aria-label', `Ubrat ${letterName(t)}`)
-			minus.dataset.step = `${tileKey(t)}|minus`
-			minus.addEventListener('click', () => setSelection(t, n - 1, 'minus'))
-			const count = document.createElement('span')
-			count.textContent = n
-			count.setAttribute('aria-label', `Vybráno ${letterName(t)}: ${n}`)
+			minus.setAttribute('aria-label', t('ui.remove', { x: letterName(tile) }))
+			minus.dataset.step = `${tileKey(tile)}|minus`
+			minus.addEventListener('click', () => setSelection(tile, n - 1, 'minus'))
+			const countEl = document.createElement('span')
+			countEl.textContent = n
+			countEl.setAttribute('aria-label', t('ui.selectedCount', { x: letterName(tile), n }))
 			const plus = document.createElement('button')
 			plus.type = 'button'
 			plus.textContent = '+'
-			plus.setAttribute('aria-label', `Přidat ${letterName(t)}`)
-			plus.dataset.step = `${tileKey(t)}|plus`
-			plus.addEventListener('click', () => setSelection(t, n + 1, 'plus'))
-			stepper.append(minus, count, plus)
+			plus.setAttribute('aria-label', t('ui.add', { x: letterName(tile) }))
+			plus.dataset.step = `${tileKey(tile)}|plus`
+			plus.addEventListener('click', () => setSelection(tile, n + 1, 'plus'))
+			stepper.append(minus, countEl, plus)
 			cell.append(b, stepper)
 			return cell
 		}),
@@ -688,27 +693,24 @@ function renderTileList() {
 	document.getElementById('selection-tools').hidden = !selectionMode()
 }
 
-// České skloňování podle počtu: 1 kámen, 2–4 kameny, 0 a 5+ kamenů.
-const plural = (n, one, few, many) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ? few : many}`
-const tilesWord = (n) => plural(n, 'kámen', 'kameny', 'kamenů')
 
 function renderSummary() {
 	const total = expandedTiles().length
 	const n = plates().length
 	document.getElementById('summary').textContent =
-		`${selectionMode() ? 'vybráno ' : ''}${tilesWord(total)} · ${plural(n, 'podložka', 'podložky', 'podložek')}`
+		`${selectionMode() ? `${t('ui.selected')} ` : ''}${count(total, 'n.tiles')} · ${count(n, 'n.plates')}`
 	const dl = document.getElementById('dl-set')
-	dl.textContent = selectionMode() ? 'Stáhnout vybrané (ZIP)' : 'Stáhnout celou sadu (ZIP)'
+	dl.textContent = selectionMode() ? t('ui.downloadSelection') : t('ui.downloadSet')
 	dl.disabled = total === 0
 
 	const sel = document.getElementById('plate-select')
-	sel.replaceChildren(...Array.from({ length: n }, (_, i) => new Option(`Podložka ${i + 1} / ${n}`, String(i))))
+	sel.replaceChildren(...Array.from({ length: n }, (_, i) => new Option(t('ui.plateOf', { i: i + 1, n }), String(i))))
 	if (plateIndex >= n) plateIndex = 0
 	sel.value = String(plateIndex)
 	sel.hidden = view !== 'plate' || n < 2
 }
 
-const mm = (v) => `${+v.toFixed(2)} mm`.replace('.', ',')
+const mm = (v) => `${(+v.toFixed(2)).toLocaleString(getLanguage())} mm`
 
 // Doporučení pro slicer a upozornění podle nastavení a vygenerovaných kamenů.
 function slicerTips() {
@@ -724,43 +726,41 @@ function slicerTips() {
 		.filter((x) => x.info)
 	const missing = [...new Set(built.flatMap((x) => x.info.missing))]
 	if (missing.length) {
-		warn(`Zvolený font neobsahuje znaky ${missing.join(' ')} – na kamenech by chyběly. Zvolte jiný font (např. DejaVu Sans).`)
+		warn(t('tip.missing', { chars: missing.join(' ') }))
 	}
 	const overflow = built.filter((x) => x.info.overflow).map((x) => letterName(x.t))
 	if (overflow.length) {
-		warn(`Přesahuje okraj kamene a bude oříznuto: ${overflow.join(', ')}. Zmenšete písmeno, hodnotu či značku nebo upravte posun.`)
+		warn(t('tip.overflow', { list: overflow.join(', ') }))
 	}
 
 	if (settings.style === 'engraved') {
-		tip('Vyrytá písmena se tisknou v jedné barvě. Pro kontrast lze prohlubně po tisku zatřít barvou nebo voskovkou.')
+		tip(t('tip.engraved'))
 	} else if (settings.style === 'inlay') {
-		tip('Zapuštěná písmena vyžadují vícebarevnou tiskárnu (AMS, MMU…) – kámen i písmena leží ve stejných vrstvách. Otevřete 3MF a dílům „Kámen“ a „Písmena“ přiřaďte různé filamenty.')
+		tip(t('tip.inlay'))
 	} else {
 		const layer = Math.round(T / lh) + 1
-		tip(
-			`Dvě barvy i na jednobarevné tiskárně: ve sliceru vložte výměnu filamentu (M600 / pauzu) na vrstvu ${layer} ve výšce ${mm(T + lh)} – nad tloušťkou kamene ${mm(T)} se tisknou už jen písmena. Pro vícebarevné tiskárny je ve 3MF samostatný díl „Písmena“.`,
-		)
+		tip(t('tip.raised', { layer, z: mm(T + lh), t: mm(T) }))
 	}
 
 	if (faceDown) {
-		tip('Tiskne se lícem dolů: líc převezme povrch podložky (hladká PEI = lesk, texturovaná = mat). Zapněte kompenzaci rozlití první vrstvy (elephant foot), ať písmena zůstanou ostrá.')
+		tip(t('tip.faceDown'))
 	} else if (settings.style !== 'raised') {
-		tip('Tiskne se lícem nahoru: pro hladký povrch zapněte žehlení (ironing) horní vrstvy.')
+		tip(t('tip.faceUp'))
 	}
 
-	const checks = [['Tloušťka kamene', T]]
-	if (settings.style === 'raised') checks.push(['Výška písmen', settings.height])
-	else checks.push(['Hloubka písmen', settings.depth])
-	if (hasMark()) checks.push(['Hloubka značky', settings.markDepth])
+	const checks = [[t('check.thickness'), T]]
+	if (settings.style === 'raised') checks.push([t('check.height'), settings.height])
+	else checks.push([t('check.depth'), settings.depth])
+	if (hasMark()) checks.push([t('check.mark'), settings.markDepth])
 	for (const [label, v] of checks) {
 		const layers = v / lh
 		if (Math.abs(layers - Math.round(layers)) > 0.01) {
-			warn(`${label} ${mm(v)} není násobkem výšky vrstvy ${mm(lh)} – doporučuji ${mm(Math.max(1, Math.round(layers)) * lh)}.`)
+			warn(t('tip.layers', { label, v: mm(v), lh: mm(lh), rec: mm(Math.max(1, Math.round(layers)) * lh) }))
 		}
 	}
 
 	if (hasMark() && !faceDown) {
-		tip('Značka na spodku leží na podložce a tiskne se jako krátké přemostění – stačí mělká (1–2 vrstvy) a jednoduchý tvar. V náhledu ji uvidíte tlačítkem „Otočit“.')
+		tip(t('tip.mark'))
 	}
 	return tips
 }
@@ -787,7 +787,7 @@ function applyFlip() {
 	const btn = document.getElementById('flip')
 	btn.setAttribute('aria-pressed', String(userFlip))
 	const note = document.getElementById('view-note')
-	note.textContent = flipped ? (view === 'plate' && asPrinted && !userFlip ? 'Lícem dolů, jak se tiskne' : 'Pohled na spodek') : ''
+	note.textContent = flipped ? (view === 'plate' && asPrinted && !userFlip ? t('ui.viewPrinted') : t('ui.viewBottom')) : ''
 }
 
 function drawScene() {
@@ -827,16 +827,16 @@ async function redraw() {
 	try {
 		// Nejdřív to, co je vidět, pak zbytek sady kvůli upozorněním.
 		const visible = view === 'tile' ? tileList().slice(selected, selected + 1) : plates()[plateIndex] || []
-		if (visible.some((t) => !tileCache.has(tileKey(t)))) setStatus('Generuji…')
+		if (visible.some((tile) => !tileCache.has(tileKey(tile)))) setStatus(t('status.generating'))
 		if (!(await ensureTiles(visible)) || seq !== drawSeq) return
 		drawScene()
 		if (!(await ensureTiles(tileList())) || seq !== drawSeq) return
 		renderTips()
-		if (view === 'plate' && !expandedTiles().length) setStatus('Nejsou vybrané žádné kameny.', false, true)
+		if (view === 'plate' && !expandedTiles().length) setStatus(t('status.noSelection'), false, true)
 		else clearBusyStatus()
 	} catch (err) {
 		console.error(err)
-		if (seq === drawSeq) setStatus(`Chyba při generování: ${err.message}`, true)
+		if (seq === drawSeq) setStatus(t('status.buildError', { msg: err.message }), true)
 	}
 }
 
@@ -873,7 +873,7 @@ function download(data, name) {
 }
 
 function fileSafe(s) {
-	return s === '_' ? 'zolik' : s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]/g, '') || 'x'
+	return s === '_' ? t('file.blank') : s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w-]/g, '') || 'x'
 }
 
 async function runExport(button, payload) {
@@ -887,7 +887,15 @@ async function runExport(button, payload) {
 				flip: effectiveFaceDown() ? settings.thickness : null,
 				colors: { body: settings.bodyColor, letters: settings.letterColor },
 				bed: bedSize(),
-				labels: { body: 'Kámen', letters: 'Písmena', blank: 'Žolík', bodyFile: 'kamen', lettersFile: 'pismena' },
+				labels: {
+					body: t('part.body'),
+					letters: t('part.letters'),
+					blank: t('ui.blank'),
+					bodyFile: t('file.body'),
+					lettersFile: t('file.letters'),
+					progressPlate: t('status.progressPlate'),
+					zipping: t('status.zipping'),
+				},
 			},
 			{ onProgress: (text) => setStatus(text) },
 		)
@@ -895,7 +903,7 @@ async function runExport(button, payload) {
 		clearBusyStatus()
 	} catch (err) {
 		console.error(err)
-		setStatus(`Export selhal: ${err.message}`, true)
+		setStatus(t('status.exportError', { msg: err.message }), true)
 	} finally {
 		button.disabled = false
 	}
@@ -914,27 +922,62 @@ function downloadTile(e) {
 function downloadSet(e) {
 	const ps = plates()
 	const groups = ps.map((plate, i) => ({
-		prefix: `podlozka-${String(i + 1).padStart(2, '0')}`,
+		prefix: `${t('file.plate')}-${String(i + 1).padStart(2, '0')}`,
 		placed: plate.map(({ letter, value, x, y }) => ({ letter, value, x, y })),
 	}))
 	const readme = [
-		'Scrabble 3D generátor – https://github.com/FilipChalupa/scrabble-3d-generator',
+		`${t('app.title')} – https://github.com/FilipChalupa/scrabble-3d-generator`,
 		'',
-		`Provedení: ${STYLES[settings.style]}`,
-		`Kámen: ${settings.size} × ${settings.size} × ${settings.thickness} mm`,
-		`Tisk lícem dolů: ${effectiveFaceDown() ? 'ano' : 'ne'}`,
+		`${t('readme.style')}: ${t(`o.style.${settings.style}`)}`,
+		`${t('readme.tile')}: ${settings.size} × ${settings.size} × ${settings.thickness} mm`,
+		`${t('readme.faceDown')}: ${effectiveFaceDown() ? t('readme.yes') : t('readme.no')}`,
 		'',
-		...groups.map((g) => `${g.prefix}: ${tilesWord(g.placed.length)} – ${g.placed.map((p) => p.letter).join(' ')}`),
+		...groups.map((g) => `${g.prefix}: ${count(g.placed.length, 'n.tiles')} – ${g.placed.map((p) => p.letter).join(' ')}`),
 		'',
-		'Tipy pro tisk:',
+		t('readme.tips'),
 		...slicerTips().map((t) => `- ${t.text}`),
 		'',
 	].join('\n')
-	runExport(e.currentTarget, { groups, readme, zipName: 'scrabble-sada.zip' })
+	runExport(e.currentTarget, { groups, readme, zipName: `${t('file.set')}.zip` })
+}
+
+// ---------- Jazyk ----------
+
+function applyStaticTexts() {
+	for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n)
+	for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle)
+	for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria))
+	document.querySelector('meta[name="description"]').content = t('app.description')
+}
+
+async function changeLanguage(lang) {
+	settings.lang = lang
+	setLanguage(lang)
+	applyStaticTexts()
+	const customOption = inputs.font.querySelector('option[value="custom"]')
+	form.replaceChildren()
+	buildForm()
+	writeForm()
+	if (customOption) {
+		const stored = await fontStore('readonly', (s) => s.get('font')).catch(() => null)
+		if (stored) setCustomFontOption(stored.name)
+		inputs.font.value = settings.font
+	}
+	saveSettings()
+	renderTileList()
+	renderSummary()
+	renderTips()
+	applyFlip()
 }
 
 // ---------- Start ----------
 
+setLanguage(settings.lang)
+applyStaticTexts()
+const langSelect = document.getElementById('lang')
+for (const [code, { name }] of Object.entries(LANGUAGES)) langSelect.add(new Option(name, code))
+langSelect.value = settings.lang
+langSelect.addEventListener('change', () => changeLanguage(langSelect.value))
 buildForm()
 writeForm()
 for (const b of document.querySelectorAll('[data-view]')) b.addEventListener('click', () => setView(b.dataset.view))
@@ -964,5 +1007,5 @@ try {
 	await loadFont(settings.font)
 	saveSettings()
 	await redraw()
-	if (settings.fromLink) setStatus('Načteno nastavení ze sdíleného odkazu.', false, true)
+	if (settings.fromLink) setStatus(t('status.fromLink'), false, true)
 } catch {}

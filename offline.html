@@ -76,6 +76,14 @@
 		</main>
 		<script>
 			addEventListener('online', () => location.reload())
+			if (!/^(cs|sk)/i.test(navigator.language)) {
+				document.documentElement.lang = 'en'
+				document.title = 'Scrabble 3D Generator – offline'
+				document.querySelector('h1').textContent = 'Sorry, you are offline'
+				document.querySelector('p').textContent =
+					'Scrabble 3D Generator only works with an internet connection – the libraries for the 3D preview and export are loaded online. The page will reload by itself once you are back online.'
+				document.querySelector('button').textContent = 'Try again'
+			}
 		</script>
 	</body>
 </html>

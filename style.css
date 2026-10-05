@@ -83,6 +83,17 @@ body {
 	font-size: 9px;
 }
 
+.topbar-right {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.topbar-right select {
+	width: auto;
+	padding: 3px 6px;
+}
+
 .gh {
 	color: var(--muted);
 	text-decoration: none;

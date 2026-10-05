@@ -115,13 +115,13 @@ const handlers = {
 	export({ groups, params, flip, colors, bed, labels, readme, zipName }, progress) {
 		const files = {}
 		groups.forEach((g, i) => {
-			if (groups.length > 1) progress(`Generuji podložku ${i + 1} / ${groups.length}…`)
+			if (groups.length > 1) progress(labels.progressPlate.replace('{i}', i + 1).replace('{n}', groups.length))
 			Object.assign(files, filesFor(g.prefix, g.placed, { params, flip, colors, bed, labels }))
 		})
 		const names = Object.keys(files)
 		if (!readme && names.length === 1) return { name: names[0], data: files[names[0]] }
 		if (readme) files['README.txt'] = new TextEncoder().encode(readme)
-		progress('Balím ZIP…')
+		progress(labels.zipping)
 		return { name: zipName, data: zip(files) }
 	},
 }

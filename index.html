@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Scrabble 3D generátor</title>
+		<title data-i18n="app.title">Scrabble 3D generátor</title>
 		<meta name="description" content="Generátor kamenů do hry Scrabble pro 3D tisk – STL a 3MF přímo v prohlížeči." />
 		<link rel="icon" href="icons/icon.svg" />
 		<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -21,7 +21,7 @@
 		<script
 			type="module"
 			src="src/main.js"
-			onerror="document.getElementById('status').textContent = 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.'"
+			onerror="document.getElementById('status').textContent = /^(cs|sk)/i.test(navigator.language) ? 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.' : 'Could not load libraries. Check your internet connection and reload the page.'"
 		></script>
 		<script>
 			if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js')
@@ -29,8 +29,11 @@
 	</head>
 	<body>
 		<header class="topbar">
-			<h1><span class="logo" aria-hidden="true">Ř<sub>4</sub></span> Scrabble 3D generátor</h1>
-			<a class="gh" href="https://github.com/FilipChalupa/scrabble-3d-generator" target="_blank" rel="noopener">GitHub</a>
+			<h1><span class="logo" aria-hidden="true">Ř<sub>4</sub></span> <span data-i18n="app.title">Scrabble 3D generátor</span></h1>
+			<span class="topbar-right">
+				<select id="lang" data-i18n-aria="ui.language"></select>
+				<a class="gh" href="https://github.com/FilipChalupa/scrabble-3d-generator" target="_blank" rel="noopener">GitHub</a>
+			</span>
 		</header>
 
 		<main class="layout">
@@ -43,32 +46,32 @@
 					<div id="viewer"></div>
 					<div class="viewer-tools">
 						<div class="seg">
-							<button type="button" data-view="tile" class="active" aria-pressed="true">Kámen</button>
-							<button type="button" data-view="plate" aria-pressed="false">Podložka</button>
+							<button type="button" data-view="tile" class="active" aria-pressed="true" data-i18n="ui.tile">Kámen</button>
+							<button type="button" data-view="plate" aria-pressed="false" data-i18n="ui.plate">Podložka</button>
 						</div>
-						<select id="plate-select" aria-label="Podložka" hidden></select>
-						<button type="button" id="flip" class="tool-btn" aria-pressed="false" title="Otočit náhled a ukázat spodek kamene">Otočit</button>
+						<select id="plate-select" data-i18n-aria="ui.plateSelect" hidden></select>
+						<button type="button" id="flip" class="tool-btn" aria-pressed="false" data-i18n-title="ui.flipTitle" data-i18n="ui.flip">Otočit</button>
 						<span id="view-note" class="view-note"></span>
 					</div>
 					<div id="status" class="status" aria-live="polite"></div>
 				</div>
 
 				<div class="tiles-head">
-					<h2>Kameny</h2>
+					<h2 data-i18n="ui.tiles">Kameny</h2>
 					<span class="selection-tools" id="selection-tools" hidden>
-						<button type="button" class="btn link small" id="select-all">Vybrat celou sadu</button>
-						<button type="button" class="btn link small" id="select-none">Vynulovat</button>
+						<button type="button" class="btn link small" id="select-all" data-i18n="ui.selectAll">Vybrat celou sadu</button>
+						<button type="button" class="btn link small" id="select-none" data-i18n="ui.selectNone">Vynulovat</button>
 					</span>
 					<span id="summary"></span>
 				</div>
 				<div id="tile-list" class="tile-list"></div>
 
 				<div class="actions">
-					<button type="button" id="dl-tile" class="btn">Stáhnout vybraný kámen</button>
+					<button type="button" id="dl-tile" class="btn" data-i18n="ui.downloadTile">Stáhnout vybraný kámen</button>
 					<button type="button" id="dl-set" class="btn primary">Stáhnout celou sadu (ZIP)</button>
-					<button type="button" id="share" class="btn">Sdílet nastavení</button>
+					<button type="button" id="share" class="btn" data-i18n="ui.share">Sdílet nastavení</button>
 				</div>
-				<h2 class="tips-title">Tipy pro tisk</h2>
+				<h2 class="tips-title" data-i18n="ui.tips">Tipy pro tisk</h2>
 				<ul class="tips" id="hint"></ul>
 			</section>
 		</main>

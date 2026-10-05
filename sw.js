@@ -1,7 +1,7 @@
 // Jednoduchý service worker: aplikace běží jen online,
 // bez připojení se místo ní zobrazí stránka s omluvou.
 
-const CACHE = 'scrabble3d-offline-v1'
+const CACHE = 'scrabble3d-offline-v2'
 const OFFLINE_URL = 'offline.html'
 
 self.addEventListener('install', (event) => {
