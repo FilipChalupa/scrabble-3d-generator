@@ -95,28 +95,55 @@ function meshXML(tris) {
 
 const escapeXML = (s) => s.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c])
 
-// parts: [{ name, color: '#rrggbb', tris }] – uloží se jako jeden objekt složený z dílů,
-// aby ho slicer (PrusaSlicer, Bambu Studio, OrcaSlicer) načetl jako vícedílný model.
-export function to3MF(parts, name = 'Scrabble') {
-	const used = parts.filter((p) => p.tris.length)
-	const materials = used
-		.map((p) => `<base name="${escapeXML(p.name)}" displaycolor="${p.color.toUpperCase()}FF"/>`)
+// Každý druh kamene je ve 3MF jeden objekt složený z dílů (kámen, písmena) a na
+// podložce se objevuje jako jeho instance. Slicer (PrusaSlicer, Bambu Studio,
+// OrcaSlicer) tak umí kameny jednotlivě mazat, posouvat a dílům přiřadit filamenty.
+//   tiles: [{ name, parts: [{ name, color: '#rrggbb', tris }] }]
+//   items: [{ tile: index do tiles, x, y, flipHeight: číslo | null }]
+export function to3MF(tiles, items, name = 'Scrabble') {
+	const materials = []
+	const materialIndex = new Map()
+	for (const t of tiles) {
+		for (const part of t.parts) {
+			if (!materialIndex.has(part.name)) {
+				materialIndex.set(part.name, materials.length)
+				materials.push(`<base name="${escapeXML(part.name)}" displaycolor="${part.color.toUpperCase()}FF"/>`)
+			}
+		}
+	}
+
+	let nextId = 2
+	const objects = []
+	const tileIds = tiles.map((t) => {
+		const components = []
+		for (const part of t.parts) {
+			if (!part.tris.length) continue
+			const id = nextId++
+			objects.push(
+				`<object id="${id}" name="${escapeXML(part.name)}" type="model" pid="1" pindex="${materialIndex.get(part.name)}">${meshXML(part.tris)}</object>`,
+			)
+			components.push(`<component objectid="${id}"/>`)
+		}
+		const id = nextId++
+		objects.push(`<object id="${id}" name="${escapeXML(t.name)}" type="model"><components>${components.join('')}</components></object>`)
+		return id
+	})
+
+	const fmt = (v) => +v.toFixed(4)
+	const build = items
+		.map(({ tile, x, y, flipHeight }) => {
+			// Řádkový zápis matice 3×4; otočení lícem dolů = 180° kolem osy Y.
+			const m = flipHeight == null ? `1 0 0 0 1 0 0 0 1 ${fmt(x)} ${fmt(y)} 0` : `-1 0 0 0 1 0 0 0 -1 ${fmt(x)} ${fmt(y)} ${fmt(flipHeight)}`
+			return `<item objectid="${tileIds[tile]}" transform="${m}"/>`
+		})
 		.join('')
-	const objects = used
-		.map(
-			(p, i) =>
-				`<object id="${i + 2}" name="${escapeXML(p.name)}" type="model" pid="1" pindex="${i}">${meshXML(p.tris)}</object>`,
-		)
-		.join('')
-	const assemblyId = used.length + 2
-	const components = used.map((_, i) => `<component objectid="${i + 2}"/>`).join('')
+
 	const model =
 		'<?xml version="1.0" encoding="UTF-8"?>\n' +
 		'<model unit="millimeter" xml:lang="cs-CZ" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">' +
 		`<metadata name="Title">${escapeXML(name)}</metadata>` +
-		`<resources><basematerials id="1">${materials}</basematerials>${objects}` +
-		`<object id="${assemblyId}" name="${escapeXML(name)}" type="model"><components>${components}</components></object>` +
-		`</resources><build><item objectid="${assemblyId}"/></build></model>`
+		`<resources><basematerials id="1">${materials.join('')}</basematerials>${objects.join('')}</resources>` +
+		`<build>${build}</build></model>`
 
 	return zipSync({
 		'[Content_Types].xml': strToU8(

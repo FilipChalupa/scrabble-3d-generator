@@ -24,7 +24,7 @@ Vše běží přímo v prohlížeči, žádný server ani instalace nejsou potř
 - volitelný tisk lícem dolů (hladký líc z texturované / hladké podložky), náhled jde otočit a ukázat spodek
 - export:
   - jednotlivý kámen nebo celá sada v ZIPu
-  - `STL` (jeden uzavřený díl) a `3MF` s kamenem a písmeny jako dvěma díly v barvách
+  - `STL` (jeden uzavřený díl) a `3MF` s každým kamenem jako samostatným objektem a barevnými díly
 
 ## Instalace (PWA)
 
@@ -33,8 +33,9 @@ Funguje jen online – bez připojení se zobrazí omluvná stránka.
 
 ## Vícebarevný tisk
 
-Soubor `3MF` obsahuje jeden objekt složený ze dvou dílů (*Kámen* a *Písmena*).
-Po otevření v PrusaSliceru, Bambu Studiu nebo OrcaSliceru stačí dílům přiřadit filamenty.
+V souboru `3MF` je každý kámen samostatný objekt (stejné kameny jsou instancemi jednoho objektu),
+složený ze dílů *Kámen* a *Písmena*. Po otevření v PrusaSliceru, Bambu Studiu nebo OrcaSliceru stačí dílům
+přiřadit filamenty; jednotlivé kameny jde mazat nebo přesouvat.
 Alternativně lze načíst `*-kamen.stl` a `*-pismena.stl` současně a potvrdit načtení jako jeden objekt s více díly.
 
 ### Na jednobarevné tiskárně

@@ -166,15 +166,27 @@ test('STL a 3MF mají správnou strukturu', async () => {
 	assert.equal(stl.length, 84 + (body.length / 9) * 50)
 	assert.equal(new DataView(stl.buffer).getUint32(80, true), body.length / 9)
 
+	const letters = Float32Array.from(b.parts.letters)
 	const zip = unzipSync(
-		to3MF([
-			{ name: 'Kámen', color: '#ffffff', tris: body },
-			{ name: 'Písmena', color: '#000000', tris: Float32Array.from(b.parts.letters) },
-		]),
+		to3MF(
+			[
+				{ name: 'A', parts: [{ name: 'Kámen', color: '#ffffff', tris: body }, { name: 'Písmena', color: '#000000', tris: letters }] },
+				{ name: 'B', parts: [{ name: 'Kámen', color: '#ffffff', tris: body }] },
+			],
+			[
+				{ tile: 0, x: 10, y: 10, flipHeight: null },
+				{ tile: 0, x: 40, y: 10, flipHeight: null },
+				{ tile: 1, x: 70, y: 10, flipHeight: 4 },
+			],
+		),
 	)
 	const model = strFromU8(zip['3D/3dmodel.model'])
 	assert.ok(zip['[Content_Types].xml'] && zip['_rels/.rels'])
-	assert.equal(model.match(/<object /g).length, 3)
-	assert.equal(model.match(/<component /g).length, 2)
+	// 3 sítě (A kámen, A písmena, B kámen) + 2 složené objekty
+	assert.equal(model.match(/<object /g).length, 5)
+	assert.equal(model.match(/<component /g).length, 3)
+	assert.equal(model.match(/<item /g).length, 3)
+	assert.match(model, /transform="-1 0 0 0 1 0 0 0 -1 70 10 4"/)
+	assert.equal(model.match(/<base /g).length, 2)
 	assert.match(model, /displaycolor="#000000FF"/)
 })

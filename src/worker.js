@@ -46,24 +46,43 @@ function getTile(params, letter, value) {
 	return t
 }
 
-// Soubory pro skupinu kamenů rozmístěných na pozicích x, y.
+// Soubory pro skupinu kamenů rozmístěných na pozicích x, y (střed podložky = 0, 0).
 function filesFor(prefix, placed, o) {
-	const gather = (pick) => concatTris(placed.map((p) => placeTris(pick(getTile(o.params, p.letter, p.value)), p.x, p.y, o.flip)))
-	const files = {}
 	const style = o.params.style
+	const tileOf = (p) => getTile(o.params, p.letter, p.value)
+	const gather = (pick) => concatTris(placed.map((p) => placeTris(pick(tileOf(p)), p.x, p.y, o.flip)))
+	const files = {}
+
+	// 3MF: každý druh kamene jednou, na podložce jako instance.
+	const kinds = new Map()
+	for (const p of placed) {
+		const k = `${p.letter}|${p.value}`
+		if (!kinds.has(k)) kinds.set(k, { index: kinds.size, letter: p.letter, value: p.value })
+	}
+	const tiles = [...kinds.values()].map(({ letter, value }) => {
+		const t = getTile(o.params, letter, value)
+		const name = letter === '_' ? `${o.labels.blank} (${value})` : `${letter} (${value})`
+		const parts =
+			style === 'engraved'
+				? [{ name: o.labels.body, color: o.colors.body, tris: t.single }]
+				: [
+						{ name: o.labels.body, color: o.colors.body, tris: t.parts.body },
+						{ name: o.labels.letters, color: o.colors.letters, tris: t.parts.letters },
+					]
+		return { name, parts }
+	})
+	const items = placed.map((p) => ({
+		tile: kinds.get(`${p.letter}|${p.value}`).index,
+		x: p.x + o.bed.x / 2,
+		y: p.y + o.bed.y / 2,
+		flipHeight: o.flip,
+	}))
+
 	if (style !== 'inlay') files[`${prefix}.stl`] = toSTL(gather((t) => t.single), prefix)
+	files[`${prefix}.3mf`] = to3MF(tiles, items, prefix)
 	if (style !== 'engraved') {
-		const body = gather((t) => t.parts.body)
-		const letters = gather((t) => t.parts.letters)
-		files[`${prefix}${style === 'raised' ? '-vicebarevne' : ''}.3mf`] = to3MF(
-			[
-				{ name: 'Kámen', color: o.colors.body, tris: body },
-				{ name: 'Písmena', color: o.colors.letters, tris: letters },
-			],
-			prefix,
-		)
-		files[`${prefix}-kamen.stl`] = toSTL(body, `${prefix}-kamen`)
-		files[`${prefix}-pismena.stl`] = toSTL(letters, `${prefix}-pismena`)
+		files[`${prefix}-${o.labels.bodyFile}.stl`] = toSTL(gather((t) => t.parts.body), prefix)
+		files[`${prefix}-${o.labels.lettersFile}.stl`] = toSTL(gather((t) => t.parts.letters), prefix)
 	}
 	return files
 }
@@ -93,11 +112,11 @@ const handlers = {
 	},
 
 	// groups: [{ prefix, placed: [{ letter, value, x, y }] }]
-	export({ groups, params, flip, colors, readme, zipName }, progress) {
+	export({ groups, params, flip, colors, bed, labels, readme, zipName }, progress) {
 		const files = {}
 		groups.forEach((g, i) => {
 			if (groups.length > 1) progress(`Generuji podložku ${i + 1} / ${groups.length}…`)
-			Object.assign(files, filesFor(g.prefix, g.placed, { params, flip, colors }))
+			Object.assign(files, filesFor(g.prefix, g.placed, { params, flip, colors, bed, labels }))
 		})
 		const names = Object.keys(files)
 		if (!readme && names.length === 1) return { name: names[0], data: files[names[0]] }

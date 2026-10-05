@@ -753,6 +753,8 @@ async function runExport(button, payload) {
 				params: geometryParams(),
 				flip: effectiveFaceDown() ? settings.thickness : null,
 				colors: { body: settings.bodyColor, letters: settings.letterColor },
+				bed: bedSize(),
+				labels: { body: 'Kámen', letters: 'Písmena', blank: 'Žolík', bodyFile: 'kamen', lettersFile: 'pismena' },
 			},
 			{ onProgress: (text) => setStatus(text) },
 		)
