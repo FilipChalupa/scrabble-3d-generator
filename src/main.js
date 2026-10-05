@@ -124,23 +124,82 @@ const GROUPS = [
 const FIELDS = GROUPS.flatMap((g) => g.fields)
 const PERCENT = new Set(FIELDS.filter((f) => f.unit === '%').map((f) => f.id))
 
+// Sdílený odkaz nese v #s=… jen hodnoty odlišné od výchozích (JSON v base64url).
+const SHARE_PREFIX = '#s='
+
+function encodeShare(obj) {
+	const bytes = new TextEncoder().encode(JSON.stringify(obj))
+	let bin = ''
+	for (const b of bytes) bin += String.fromCharCode(b)
+	return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function decodeShare(text) {
+	const bin = atob(text.replace(/-/g, '+').replace(/_/g, '/'))
+	return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))))
+}
+
+function readSharedSettings() {
+	if (!location.hash.startsWith(SHARE_PREFIX)) return null
+	try {
+		return decodeShare(location.hash.slice(SHARE_PREFIX.length))
+	} catch {
+		return null
+	} finally {
+		history.replaceState(null, '', location.pathname + location.search)
+	}
+}
+
 function loadSettings() {
 	const s = Object.fromEntries(FIELDS.filter((f) => 'def' in f).map((f) => [f.id, f.def]))
-	try {
-		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-		for (const k of Object.keys(s)) if (k in saved) s[k] = saved[k]
-		s.selection = saved.selection && typeof saved.selection === 'object' ? saved.selection : {}
-	} catch {
-		s.selection = {}
+	let source = readSharedSettings()
+	const fromLink = !!source
+	if (!source) {
+		try {
+			source = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+		} catch {
+			source = {}
+		}
 	}
+	for (const k of Object.keys(s)) if (k in source && typeof source[k] === typeof s[k]) s[k] = source[k]
+	s.selection = source.selection && typeof source.selection === 'object' ? source.selection : {}
+	// Předvolba určuje seznam kamenů (a případné opravy předvoleb se tak projeví i u uložených nastavení).
+	if (PRESETS[s.preset]) s.tiles = PRESETS[s.preset].tiles.trim()
+	s.fromLink = fromLink
 	return s
+}
+
+function shareURL() {
+	const diff = {}
+	for (const f of FIELDS) {
+		if (!('def' in f) || settings[f.id] === f.def) continue
+		if (f.id === 'font' && settings.font === 'custom') continue // vlastní font nejde sdílet
+		if (f.id === 'tiles' && PRESETS[settings.preset]) continue // vyplyne z předvolby
+		diff[f.id] = settings[f.id]
+	}
+	if (selectionMode() && Object.keys(settings.selection).length) diff.selection = settings.selection
+	const url = new URL(location.href)
+	url.hash = Object.keys(diff).length ? SHARE_PREFIX + encodeShare(diff) : ''
+	return url.href
+}
+
+async function share() {
+	const url = shareURL()
+	const note = settings.font === 'custom' ? ' Vlastní font se nesdílí – příjemce uvidí výchozí písmo.' : ''
+	try {
+		await navigator.clipboard.writeText(url)
+		setStatus(`Odkaz na toto nastavení je ve schránce.${note}`, false, true)
+	} catch {
+		window.prompt('Zkopírujte odkaz na toto nastavení:', url)
+	}
 }
 
 const settings = loadSettings()
 
 function saveSettings() {
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+		const { fromLink, ...rest } = settings
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(rest))
 	} catch {}
 }
 
@@ -560,10 +619,19 @@ let plateIndex = 0
 let userFlip = false
 
 const statusEl = document.getElementById('status')
-function setStatus(text, error = false) {
+// Stavový řádek. Průběžné hlášky („Generuji…“, chyby) překreslení samo smaže,
+// informační hlášky (např. o zkopírovaném odkazu) zmizí až po chvíli.
+let statusKind = ''
+let statusTimer = 0
+function setStatus(text, error = false, info = false) {
 	statusEl.textContent = text
 	statusEl.classList.toggle('error', error)
+	statusKind = text ? (info ? 'info' : 'busy') : ''
+	clearTimeout(statusTimer)
+	if (info) statusTimer = setTimeout(() => statusKind === 'info' && setStatus(''), 6000)
 }
+
+const clearBusyStatus = () => statusKind === 'busy' && setStatus('')
 
 const letterName = (t) => (t.letter === '_' ? 'Žolík' : t.letter)
 
@@ -764,7 +832,8 @@ async function redraw() {
 		drawScene()
 		if (!(await ensureTiles(tileList())) || seq !== drawSeq) return
 		renderTips()
-		setStatus(view === 'plate' && !expandedTiles().length ? 'Nejsou vybrané žádné kameny.' : '')
+		if (view === 'plate' && !expandedTiles().length) setStatus('Nejsou vybrané žádné kameny.', false, true)
+		else clearBusyStatus()
 	} catch (err) {
 		console.error(err)
 		if (seq === drawSeq) setStatus(`Chyba při generování: ${err.message}`, true)
@@ -823,7 +892,7 @@ async function runExport(button, payload) {
 			{ onProgress: (text) => setStatus(text) },
 		)
 		download(data, name)
-		setStatus('')
+		clearBusyStatus()
 	} catch (err) {
 		console.error(err)
 		setStatus(`Export selhal: ${err.message}`, true)
@@ -878,6 +947,7 @@ document.getElementById('flip').addEventListener('click', () => {
 	applyFlip()
 })
 document.getElementById('dl-tile').addEventListener('click', downloadTile)
+document.getElementById('share').addEventListener('click', share)
 document.getElementById('select-all').addEventListener('click', () => {
 	settings.selection = Object.fromEntries(tileList().map((t) => [tileKey(t), t.count]))
 	onChange(false)
@@ -893,5 +963,6 @@ renderSummary()
 try {
 	await loadFont(settings.font)
 	saveSettings()
-	redraw()
+	await redraw()
+	if (settings.fromLink) setStatus('Načteno nastavení ze sdíleného odkazu.', false, true)
 } catch {}
