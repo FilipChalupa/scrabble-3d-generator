@@ -1,0 +1,7 @@
+node_modules/
+test-results/
+playwright-report/
+fonts/
+icons/*.png
+docs/*.png
+package-lock.json

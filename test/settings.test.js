@@ -21,7 +21,14 @@ const memoryStorage = (data = {}) => ({
 })
 
 test('normalizeSettings ořízne čísla, zahodí neznámé volby a špatné typy', () => {
-	const s = normalizeSettings({ size: 500, thickness: 'x', style: 'nonsense', bed: 'custom', selection: { 'A|1': 3, 'B|3': -1, 'C|3': 1.5 }, foo: 1 })
+	const s = normalizeSettings({
+		size: 500,
+		thickness: 'x',
+		style: 'nonsense',
+		bed: 'custom',
+		selection: { 'A|1': 3, 'B|3': -1, 'C|3': 1.5 },
+		foo: 1,
+	})
 	assert.equal(s.size, 50)
 	assert.equal(s.thickness, defaults().thickness)
 	assert.equal(s.style, 'engraved')

@@ -6,9 +6,7 @@ import { layoutTile, buildTile, fillContours, multiPolygonArea } from '../src/ge
 import { placeTris, toSTL, to3MF } from '../src/export.js'
 import { PRESETS, FONTS, parseTiles } from '../src/presets.js'
 
-const fonts = Object.fromEntries(
-	FONTS.map((f) => [f.id, opentype.parse(readFileSync(new URL(`../${f.url}`, import.meta.url)).buffer)]),
-)
+const fonts = Object.fromEntries(FONTS.map((f) => [f.id, opentype.parse(readFileSync(new URL(`../${f.url}`, import.meta.url)).buffer)]))
 
 const PARAMS = {
 	size: 19,
@@ -104,7 +102,13 @@ test('ostatní fonty, značka na spodku a nula na žolíku', () => {
 	for (const id of Object.keys(fonts)) {
 		for (const style of ['engraved', 'raised', 'inlay']) {
 			const p = { ...PARAMS, style, markText: 'FC' }
-			for (const [letter, value] of [['Ř', 4], ['Q', 10], ['_', 0], ['W', 4], ['Ů', 4]]) {
+			for (const [letter, value] of [
+				['Ř', 4],
+				['Q', 10],
+				['_', 0],
+				['W', 4],
+				['Ů', 4],
+			]) {
 				const built = buildTile(layoutTile(fonts[id], letter, value, p), p)
 				assertSolid(built.body.concat(built.accent), `${id} ${style} ${letter}`)
 			}
@@ -114,7 +118,12 @@ test('ostatní fonty, značka na spodku a nula na žolíku', () => {
 
 test('zkosení horní hrany funguje i s ostrými a velkými rohy', () => {
 	for (const style of ['engraved', 'raised', 'inlay']) {
-		for (const [radius, chamfer] of [[0, 0.5], [0.3, 0.8], [1.5, 0], [4, 1.2]]) {
+		for (const [radius, chamfer] of [
+			[0, 0.5],
+			[0.3, 0.8],
+			[1.5, 0],
+			[4, 1.2],
+		]) {
 			const p = { ...PARAMS, style, radius, chamfer, markText: 'X' }
 			const b = buildTile(layoutTile(fonts['dejavu-sans'], 'Ř', 4, p), p)
 			assertSolid(b.body.concat(b.accent), `${style} r=${radius} c=${chamfer}`)
@@ -136,7 +145,12 @@ test('vyrytý kámen má menší objem než plný a vystouplý větší', () => 
 
 test('překrývající se obrysy se sjednotí (nonzero)', () => {
 	const sq = (x, y, s, ccw = true) => {
-		const c = [[x, y], [x + s, y], [x + s, y + s], [x, y + s]]
+		const c = [
+			[x, y],
+			[x + s, y],
+			[x + s, y + s],
+			[x, y + s],
+		]
 		return ccw ? c : c.reverse()
 	}
 	// Dva překrývající se čtverce ve stejném směru = sjednocení.
@@ -170,7 +184,13 @@ test('STL a 3MF mají správnou strukturu', async () => {
 	const zip = unzipSync(
 		to3MF(
 			[
-				{ name: 'A', parts: [{ name: 'Kámen', color: '#ffffff', tris: body }, { name: 'Písmena', color: '#000000', tris: letters }] },
+				{
+					name: 'A',
+					parts: [
+						{ name: 'Kámen', color: '#ffffff', tris: body },
+						{ name: 'Písmena', color: '#000000', tris: letters },
+					],
+				},
 				{ name: 'B', parts: [{ name: 'Kámen', color: '#ffffff', tris: body }] },
 			],
 			[

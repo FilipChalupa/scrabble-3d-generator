@@ -212,7 +212,21 @@ export function bedSize(s) {
 	return { x: b.x, y: b.y }
 }
 
-const GEOMETRY_KEYS = ['size', 'thickness', 'radius', 'chamfer', 'depth', 'height', 'style', 'showValue', 'showZero', 'valueMargin', 'curveSegments', 'markText', 'markDepth']
+const GEOMETRY_KEYS = [
+	'size',
+	'thickness',
+	'radius',
+	'chamfer',
+	'depth',
+	'height',
+	'style',
+	'showValue',
+	'showZero',
+	'valueMargin',
+	'curveSegments',
+	'markText',
+	'markDepth',
+]
 
 // Parametry pro geometry.js (procenta převedená na podíly).
 export function geometryParams(s) {

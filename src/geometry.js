@@ -45,9 +45,12 @@ function cleanRing(ring, { tol = EPS, collinear = false } = {}) {
 			const prev = out.length ? out[out.length - 1] : r[r.length - 1]
 			const p = r[i]
 			const next = r[(i + 1) % r.length]
-			const ux = p[0] - prev[0], uy = p[1] - prev[1]
-			const vx = next[0] - p[0], vy = next[1] - p[1]
-			const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy)
+			const ux = p[0] - prev[0],
+				uy = p[1] - prev[1]
+			const vx = next[0] - p[0],
+				vy = next[1] - p[1]
+			const lu = Math.hypot(ux, uy),
+				lv = Math.hypot(vx, vy)
 			const straight = collinear && Math.abs(ux * vy - uy * vx) < 1e-7 * lu * lv
 			if (lu < tol || (collinear && lv < tol) || straight) {
 				changed = true
@@ -61,7 +64,10 @@ function cleanRing(ring, { tol = EPS, collinear = false } = {}) {
 }
 
 export function bounds(contours) {
-	let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+	let minX = Infinity,
+		minY = Infinity,
+		maxX = -Infinity,
+		maxY = -Infinity
 	for (const c of contours) {
 		for (const [x, y] of c) {
 			if (x < minX) minX = x
@@ -101,7 +107,10 @@ export function textContours(font, text, size, curveSegments = 6) {
 				break
 			case 'Q': {
 				const [x0, y0] = last
-				const x1 = cmd.x1, y1 = -cmd.y1, x2 = cmd.x, y2 = -cmd.y
+				const x1 = cmd.x1,
+					y1 = -cmd.y1,
+					x2 = cmd.x,
+					y2 = -cmd.y
 				for (let i = 1; i <= curveSegments; i++) {
 					const t = i / curveSegments
 					const u = 1 - t
@@ -111,7 +120,12 @@ export function textContours(font, text, size, curveSegments = 6) {
 			}
 			case 'C': {
 				const [x0, y0] = last
-				const x1 = cmd.x1, y1 = -cmd.y1, x2 = cmd.x2, y2 = -cmd.y2, x3 = cmd.x, y3 = -cmd.y
+				const x1 = cmd.x1,
+					y1 = -cmd.y1,
+					x2 = cmd.x2,
+					y2 = -cmd.y2,
+					x3 = cmd.x,
+					y3 = -cmd.y
 				const n = Math.ceil(curveSegments * 1.5)
 				for (let i = 1; i <= n; i++) {
 					const t = i / n
@@ -141,7 +155,13 @@ function capHeight(font) {
 export function roundedRect(size, radius, segments = 8) {
 	const h = size / 2
 	const r = Math.max(0, Math.min(radius, h - 0.01))
-	if (r < 0.01) return [[-h, -h], [h, -h], [h, h], [-h, h]]
+	if (r < 0.01)
+		return [
+			[-h, -h],
+			[h, -h],
+			[h, h],
+			[-h, h],
+		]
 	const pts = []
 	const corners = [
 		[h - r, -h + r, -Math.PI / 2],
@@ -256,7 +276,6 @@ function polygonsByParity(info, parity) {
 const closeRing = (c) => [...c, c[0]]
 const openRing = (r) => cleanRing(r.slice(0, -1), { tol: 1e-3, collinear: true })
 
-
 // Plné oblasti písmen a jejich doplněk v rámci obrysu kamene.
 // Glyfy se nejdřív sjednotí (překryvy písmene a hodnoty, diakritiky…) a oříznou
 // o kousek menším obrysem, aby se nedotýkaly hrany kamene.
@@ -265,9 +284,7 @@ const openRing = (r) => cleanRing(r.slice(0, -1), { tol: 1e-3, collinear: true }
 // Zvládne i překrývající se tahy (typické pro proměnné fonty).
 export function fillContours(contours) {
 	if (!contours.length) return []
-	const sorted = contours
-		.map((c) => ({ c, a: signedArea(c) }))
-		.sort((x, y) => Math.abs(y.a) - Math.abs(x.a))
+	const sorted = contours.map((c) => ({ c, a: signedArea(c) })).sort((x, y) => Math.abs(y.a) - Math.abs(x.a))
 	const outerSign = Math.sign(sorted[0].a)
 	let result = []
 	for (const { c, a } of sorted) {
@@ -323,10 +340,13 @@ function splitOnVertices(tri, pts) {
 		const t = stack.pop()
 		let split = false
 		for (let e = 0; e < 3 && !split; e++) {
-			const i = t[e], j = t[(e + 1) % 3], k = t[(e + 2) % 3]
+			const i = t[e],
+				j = t[(e + 1) % 3],
+				k = t[(e + 2) % 3]
 			const [ax, ay] = pts[i]
 			const [bx, by] = pts[j]
-			const dx = bx - ax, dy = by - ay
+			const dx = bx - ax,
+				dy = by - ay
 			const len2 = dx * dx + dy * dy
 			if (len2 < EPS * EPS) continue
 			for (let v = 0; v < pts.length; v++) {
@@ -358,7 +378,9 @@ function cap(out, polys, z, up) {
 		const idx = earcut(all.flat(), holeIndices)
 		for (let i = 0; i < idx.length; i += 3) {
 			for (let [a, b, c] of splitOnVertices([idx[i], idx[i + 1], idx[i + 2]], all)) {
-				const pa = all[a], pb = all[b], pc = all[c]
+				const pa = all[a],
+					pb = all[b],
+					pc = all[c]
 				const cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
 				if (cross > 0 !== up) [b, c] = [c, b]
 				for (const v of [a, b, c]) out.push(all[v][0], all[v][1], z)
@@ -381,8 +403,10 @@ function walls(out, contour, z0, z1) {
 function band(out, lower, upper, z0, z1) {
 	for (let i = 0; i < lower.length; i++) {
 		const j = (i + 1) % lower.length
-		const [ax, ay] = lower[i], [bx, by] = lower[j]
-		const [cx, cy] = upper[j], [dx, dy] = upper[i]
+		const [ax, ay] = lower[i],
+			[bx, by] = lower[j]
+		const [cx, cy] = upper[j],
+			[dx, dy] = upper[i]
 		out.push(ax, ay, z0, bx, by, z0, cx, cy, z1)
 		out.push(ax, ay, z0, cx, cy, z1, dx, dy, z1)
 	}
@@ -475,9 +499,6 @@ export function buildTile(layout, p) {
 		body,
 		accent,
 		height: T,
-		parts:
-			p.style === 'inlay'
-				? { body: body.concat(accent), letters: letters.length ? extrude(letters, T - d, T) : [] }
-				: null,
+		parts: p.style === 'inlay' ? { body: body.concat(accent), letters: letters.length ? extrude(letters, T - d, T) : [] } : null,
 	}
 }

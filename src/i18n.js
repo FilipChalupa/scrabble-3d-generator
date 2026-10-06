@@ -239,7 +239,8 @@ const en = {
 	'status.progressPlate': 'Generating plate {i} / {n}…',
 	'status.zipping': 'Packing ZIP…',
 
-	'tip.missing': 'The selected font has no {chars} – those characters would be missing from the tiles. Choose another font (e.g. DejaVu Sans).',
+	'tip.missing':
+		'The selected font has no {chars} – those characters would be missing from the tiles. Choose another font (e.g. DejaVu Sans).',
 	'tip.overflow': 'Reaches over the tile edge and will be cut off: {list}. Make the letter, value or mark smaller or adjust the offset.',
 	'tip.engraved': 'Engraved letters print in one colour. For contrast, fill the recesses with paint or wax after printing.',
 	'tip.inlay':

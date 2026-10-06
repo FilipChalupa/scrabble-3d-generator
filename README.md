@@ -36,7 +36,7 @@ Funguje jen online – bez připojení se zobrazí omluvná stránka.
 ## Vícebarevný tisk
 
 V souboru `3MF` je každý kámen samostatný objekt (stejné kameny jsou instancemi jednoho objektu),
-složený ze dílů *Kámen* a *Písmena*. Po otevření v PrusaSliceru, Bambu Studiu nebo OrcaSliceru stačí dílům
+složený ze dílů _Kámen_ a _Písmena_. Po otevření v PrusaSliceru, Bambu Studiu nebo OrcaSliceru stačí dílům
 přiřadit filamenty; jednotlivé kameny jde mazat nebo přesouvat.
 Alternativně lze načíst `*-kamen.stl` a `*-pismena.stl` současně a potvrdit načtení jako jeden objekt s více díly.
 

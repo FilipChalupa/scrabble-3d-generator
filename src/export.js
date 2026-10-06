@@ -9,7 +9,9 @@ export function placeTris(tris, dx, dy, flipHeight = null) {
 		for (let v = 0; v < 3; v++) {
 			const src = i + v * 3
 			const dst = src
-			let x = tris[src], y = tris[src + 1], z = tris[src + 2]
+			let x = tris[src],
+				y = tris[src + 1],
+				z = tris[src + 2]
 			if (flipHeight !== null) {
 				// Otočení o 180° kolem osy Y – zachová orientaci normál.
 				x = -x
@@ -43,10 +45,18 @@ export function toSTL(tris, name = 'scrabble') {
 	view.setUint32(80, n, true)
 	let o = 84
 	for (let i = 0; i < tris.length; i += 9) {
-		const ax = tris[i], ay = tris[i + 1], az = tris[i + 2]
-		const ux = tris[i + 3] - ax, uy = tris[i + 4] - ay, uz = tris[i + 5] - az
-		const vx = tris[i + 6] - ax, vy = tris[i + 7] - ay, vz = tris[i + 8] - az
-		let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx
+		const ax = tris[i],
+			ay = tris[i + 1],
+			az = tris[i + 2]
+		const ux = tris[i + 3] - ax,
+			uy = tris[i + 4] - ay,
+			uz = tris[i + 5] - az
+		const vx = tris[i + 6] - ax,
+			vy = tris[i + 7] - ay,
+			vz = tris[i + 8] - az
+		let nx = uy * vz - uz * vy,
+			ny = uz * vx - ux * vz,
+			nz = ux * vy - uy * vx
 		const l = Math.hypot(nx, ny, nz) || 1
 		view.setFloat32(o, nx / l, true)
 		view.setFloat32(o + 4, ny / l, true)
@@ -133,7 +143,8 @@ export function to3MF(tiles, items, name = 'Scrabble') {
 	const build = items
 		.map(({ tile, x, y, flipHeight }) => {
 			// Řádkový zápis matice 3×4; otočení lícem dolů = 180° kolem osy Y.
-			const m = flipHeight == null ? `1 0 0 0 1 0 0 0 1 ${fmt(x)} ${fmt(y)} 0` : `-1 0 0 0 1 0 0 0 -1 ${fmt(x)} ${fmt(y)} ${fmt(flipHeight)}`
+			const m =
+				flipHeight == null ? `1 0 0 0 1 0 0 0 1 ${fmt(x)} ${fmt(y)} 0` : `-1 0 0 0 1 0 0 0 -1 ${fmt(x)} ${fmt(y)} ${fmt(flipHeight)}`
 			return `<item objectid="${tileIds[tile]}" transform="${m}"/>`
 		})
 		.join('')

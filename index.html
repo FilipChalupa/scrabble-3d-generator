@@ -21,7 +21,11 @@
 		<script
 			type="module"
 			src="src/main.js"
-			onerror="document.getElementById('status').textContent = /^(cs|sk)/i.test(navigator.language) ? 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.' : 'Could not load libraries. Check your internet connection and reload the page.'"
+			onerror="
+				document.getElementById('status').textContent = /^(cs|sk)/i.test(navigator.language)
+					? 'Nepodařilo se načíst knihovny. Zkontrolujte připojení k internetu a obnovte stránku.'
+					: 'Could not load libraries. Check your internet connection and reload the page.'
+			"
 		></script>
 		<script>
 			if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js')
@@ -29,7 +33,9 @@
 	</head>
 	<body>
 		<header class="topbar">
-			<h1><span class="logo" aria-hidden="true">Ř<sub>4</sub></span> <span data-i18n="app.title">Scrabble 3D generátor</span></h1>
+			<h1>
+				<span class="logo" aria-hidden="true">Ř<sub>4</sub></span> <span data-i18n="app.title">Scrabble 3D generátor</span>
+			</h1>
 			<span class="topbar-right">
 				<select id="lang" data-i18n-aria="ui.language"></select>
 				<a class="gh" href="https://github.com/FilipChalupa/scrabble-3d-generator" target="_blank" rel="noopener">GitHub</a>
@@ -50,7 +56,9 @@
 							<button type="button" data-view="plate" aria-pressed="false" data-i18n="ui.plate">Podložka</button>
 						</div>
 						<select id="plate-select" data-i18n-aria="ui.plateSelect" hidden></select>
-						<button type="button" id="flip" class="tool-btn" aria-pressed="false" data-i18n-title="ui.flipTitle" data-i18n="ui.flip">Otočit</button>
+						<button type="button" id="flip" class="tool-btn" aria-pressed="false" data-i18n-title="ui.flipTitle" data-i18n="ui.flip">
+							Otočit
+						</button>
 						<span id="view-note" class="view-note"></span>
 					</div>
 				</div>

@@ -83,7 +83,9 @@ export function createPreview(el) {
 					[1, 1],
 					[-1, 1],
 				].map(([sx, sy]) => new THREE.Vector3((sx * bed.x) / 2, (sy * bed.y) / 2, 0))
-				bedGroup.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(corners), new THREE.LineBasicMaterial({ color: 0x888888 })))
+				bedGroup.add(
+					new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(corners), new THREE.LineBasicMaterial({ color: 0x888888 })),
+				)
 				frame(bed.x, bed.y, `plate:${bed.x}x${bed.y}`)
 			} else {
 				frame(size, size, `tile:${size}`)

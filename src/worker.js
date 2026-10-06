@@ -78,11 +78,21 @@ function filesFor(prefix, placed, o) {
 		flipHeight: o.flip,
 	}))
 
-	if (style !== 'inlay') files[`${prefix}.stl`] = toSTL(gather((t) => t.single), prefix)
+	if (style !== 'inlay')
+		files[`${prefix}.stl`] = toSTL(
+			gather((t) => t.single),
+			prefix,
+		)
 	files[`${prefix}.3mf`] = to3MF(tiles, items, prefix)
 	if (style !== 'engraved') {
-		files[`${prefix}-${o.labels.bodyFile}.stl`] = toSTL(gather((t) => t.parts.body), prefix)
-		files[`${prefix}-${o.labels.lettersFile}.stl`] = toSTL(gather((t) => t.parts.letters), prefix)
+		files[`${prefix}-${o.labels.bodyFile}.stl`] = toSTL(
+			gather((t) => t.parts.body),
+			prefix,
+		)
+		files[`${prefix}-${o.labels.lettersFile}.stl`] = toSTL(
+			gather((t) => t.parts.letters),
+			prefix,
+		)
 	}
 	return files
 }

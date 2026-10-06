@@ -38,7 +38,13 @@ test('chybějící znaky a přesah', () => {
 
 test('skloňování', () => {
 	setLanguage('cs')
-	assert.deepEqual([0, 1, 2, 4, 5, 22].map((n) => count(n, 'n.tiles')), ['0 kamenů', '1 kámen', '2 kameny', '4 kameny', '5 kamenů', '22 kamenů'])
+	assert.deepEqual(
+		[0, 1, 2, 4, 5, 22].map((n) => count(n, 'n.tiles')),
+		['0 kamenů', '1 kámen', '2 kameny', '4 kameny', '5 kamenů', '22 kamenů'],
+	)
 	setLanguage('en')
-	assert.deepEqual([0, 1, 2].map((n) => count(n, 'n.plates')), ['0 plates', '1 plate', '2 plates'])
+	assert.deepEqual(
+		[0, 1, 2].map((n) => count(n, 'n.plates')),
+		['0 plates', '1 plate', '2 plates'],
+	)
 })
