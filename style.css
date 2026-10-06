@@ -354,7 +354,7 @@ button:focus-visible {
 	align-items: baseline;
 	justify-content: space-between;
 	gap: 12px;
-	margin: 18px 0 8px;
+	margin: 6px 0 8px;
 }
 
 .tiles-head h2 {

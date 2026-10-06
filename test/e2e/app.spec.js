@@ -152,3 +152,13 @@ test('bez internetu se ukáže omluvná stránka', async ({ page, context }) => 
 	await page.reload()
 	await expect(page.locator('h1')).toHaveText('Omlouváme se, jste offline')
 })
+
+test('manifest PWA je platný a aplikace jde nainstalovat', async ({ page }) => {
+	await openApp(page)
+	await page.evaluate(() => navigator.serviceWorker.ready)
+	const cdp = await page.context().newCDPSession(page)
+	const { errors } = await cdp.send('Page.getAppManifest')
+	expect(errors).toEqual([])
+	const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors')
+	expect(installabilityErrors).toEqual([])
+})
