@@ -427,6 +427,75 @@ export function extrude(polys, z0, z1) {
 	return out
 }
 
+// ---------- Tenké tahy ----------
+
+// Délka obrysu, kde je tvar užší než width. Z bodů na hranách (nejvýš po 0,25 mm)
+// se vede paprsek kolmo dovnitř tvaru (plný materiál leží vlevo od směru obrysu)
+// a hledá se protější hrana. Počítají se jen hrany zhruba rovnoběžné – tedy skutečné
+// úzké tahy či mezery, ne ostré rohy a klínové zářezy, které slicer stejně dotáhne.
+export function thinLength(polys, width) {
+	const edges = []
+	for (const p of polys) {
+		for (const r of [p.outer, ...p.holes]) {
+			for (let i = 0; i < r.length; i++) {
+				const [ax, ay] = r[i]
+				const [bx, by] = r[(i + 1) % r.length]
+				const len = Math.hypot(bx - ax, by - ay)
+				if (len < EPS) continue
+				edges.push({ ax, ay, bx, by, len, nx: -(by - ay) / len, ny: (bx - ax) / len })
+			}
+		}
+	}
+	// Mřížka hran, aby se pro každý bod procházely jen hrany v okolí.
+	const cell = Math.max(width, 0.5)
+	const grid = new Map()
+	for (const e of edges) {
+		for (let i = Math.floor(Math.min(e.ax, e.bx) / cell); i <= Math.floor(Math.max(e.ax, e.bx) / cell); i++) {
+			for (let j = Math.floor(Math.min(e.ay, e.by) / cell); j <= Math.floor(Math.max(e.ay, e.by) / cell); j++) {
+				const k = `${i},${j}`
+				if (!grid.has(k)) grid.set(k, [])
+				grid.get(k).push(e)
+			}
+		}
+	}
+	const near = (x, y) => {
+		const found = new Set()
+		for (let i = Math.floor((x - width) / cell); i <= Math.floor((x + width) / cell); i++) {
+			for (let j = Math.floor((y - width) / cell); j <= Math.floor((y + width) / cell); j++) {
+				for (const e of grid.get(`${i},${j}`) ?? []) found.add(e)
+			}
+		}
+		return found
+	}
+
+	let thin = 0
+	for (const e of edges) {
+		const samples = Math.max(1, Math.ceil(e.len / 0.25))
+		for (let k = 0; k < samples; k++) {
+			const u = (k + 0.5) / samples
+			const ox = e.ax + (e.bx - e.ax) * u
+			const oy = e.ay + (e.by - e.ay) * u
+			for (const f of near(ox, oy)) {
+				if (f === e || e.nx * f.nx + e.ny * f.ny > -0.94) continue // jen protilehlé hrany
+				// průsečík paprsku o + t·n s úsečkou f
+				const ex = f.bx - f.ax,
+					ey = f.by - f.ay
+				const den = e.nx * ey - e.ny * ex
+				if (Math.abs(den) < 1e-12) continue
+				const wx = f.ax - ox,
+					wy = f.ay - oy
+				const t = (wx * ey - wy * ex) / den
+				const v = (wx * e.ny - wy * e.nx) / den
+				if (t > 1e-6 && t < width && v >= 0 && v <= 1) {
+					thin += e.len / samples
+					break
+				}
+			}
+		}
+	}
+	return thin
+}
+
 // Hlavní funkce: z obrysů písmen postaví kámen podle zvoleného stylu.
 //  - engraved: písmena vyrytá do kamene (jeden díl)
 //  - raised:   písmena vystupují nad kámen
@@ -445,6 +514,8 @@ export function buildTile(layout, p) {
 	const margin = Math.max(p.edgeMargin, c + 0.3)
 	const clip = roundedRect(p.size - 2 * margin, Math.max(0, p.radius - margin))
 	const { letters, rest } = regions(top, layout, clip)
+	// Úzké tahy písmen a úzké mezery mezi nimi (jen když je zadaná šířka extruze).
+	const thin = p.lineWidth ? { strokes: thinLength(letters, p.lineWidth), gaps: thinLength(rest, p.lineWidth) } : null
 	const outlinePoly = [{ outer: outline, holes: [] }]
 	const markDepth = Math.min(p.markDepth ?? 0.4, (p.style === 'raised' ? T : T - d) - 0.6)
 	const mark = layout.mark?.length && markDepth > 0.05 ? regions(outline, { letter: layout.mark, value: [] }, clip) : null
@@ -485,6 +556,7 @@ export function buildTile(layout, p) {
 			body,
 			accent,
 			height: letters.length ? T + p.height : T,
+			thin,
 			parts: { body: slab, letters: letters.length ? extrude(letters, T, T + p.height) : [] },
 		}
 	}
@@ -499,6 +571,7 @@ export function buildTile(layout, p) {
 		body,
 		accent,
 		height: T,
+		thin,
 		parts: p.style === 'inlay' ? { body: body.concat(accent), letters: letters.length ? extrude(letters, T - d, T) : [] } : null,
 	}
 }

@@ -7,7 +7,18 @@ export const mm = (v) => `${(+v.toFixed(2)).toLocaleString(getLanguage())} mm`
 
 export const letterName = (tile) => (tile.letter === '_' ? t('ui.blank') : tile.letter)
 
-// built: [{ tile, info: { missing: [], overflow: bool } }] pro kameny, které už worker postavil.
+// Souvislá délka obrysu (mm), od které se úzký tah či mezera hlásí; kratší úseky jsou rohy.
+export const THIN_LIMIT = 1
+
+// Dvoubarevné vrstvy u zapuštěných písmen (číslováno od 1 = první vrstva na podložce).
+export function inlayLayers(s) {
+	const n = Math.max(1, Math.round(Math.min(s.depth, s.thickness - 0.2) / s.layerHeight))
+	if (effectiveFaceDown(s)) return { from: 1, to: n, count: n }
+	const total = Math.round(s.thickness / s.layerHeight)
+	return { from: total - n + 1, to: total, count: n }
+}
+
+// built: [{ tile, info: { missing: [], overflow: bool, thin: { strokes, gaps } } }] pro kameny, které už worker postavil.
 export function slicerTips(s, built = []) {
 	const lh = s.layerHeight
 	const T = s.thickness
@@ -20,10 +31,18 @@ export function slicerTips(s, built = []) {
 	if (missing.length) warn(t('tip.missing', { chars: missing.join(' ') }))
 	const overflow = built.filter((b) => b.info.overflow).map((b) => letterName(b.tile))
 	if (overflow.length) warn(t('tip.overflow', { list: overflow.join(', ') }))
+	const thinList = (kind) => built.filter((b) => (b.info.thin?.[kind] ?? 0) > THIN_LIMIT).map((b) => letterName(b.tile))
+	const strokes = thinList('strokes')
+	if (strokes.length) warn(t('tip.thinStrokes', { lw: mm(s.lineWidth), list: strokes.join(', ') }))
+	const gaps = thinList('gaps')
+	if (gaps.length) warn(t('tip.thinGaps', { lw: mm(s.lineWidth), list: gaps.join(', ') }))
 
 	if (s.style === 'engraved') tip(t('tip.engraved'))
-	else if (s.style === 'inlay') tip(t('tip.inlay'))
-	else tip(t('tip.raised', { layer: Math.round(T / lh) + 1, z: mm(T + lh), t: mm(T) }))
+	else if (s.style === 'inlay') {
+		tip(t('tip.inlay'))
+		const layers = inlayLayers(s)
+		tip(t('tip.inlayLayers', { from: layers.from, to: layers.to, n: layers.count, depth: mm(layers.count * lh) }))
+	} else tip(t('tip.raised', { layer: Math.round(T / lh) + 1, z: mm(T + lh), t: mm(T) }))
 
 	if (faceDown) tip(t('tip.faceDown'))
 	else if (s.style !== 'raised') tip(t('tip.faceUp'))

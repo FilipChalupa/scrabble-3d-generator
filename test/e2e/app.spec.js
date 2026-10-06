@@ -162,3 +162,12 @@ test('manifest PWA je platný a aplikace jde nainstalovat', async ({ page }) => 
 	const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors')
 	expect(installabilityErrors).toEqual([])
 })
+
+test('zapuštěná písmena: tip k vrstvám a varování na tenké tahy patkového písma', async ({ page }) => {
+	await openApp(page)
+	await page.selectOption('[name=style]', 'inlay')
+	await expect(page.locator('#hint li').filter({ hasText: 'vrstvách 18–20' })).toHaveCount(1)
+	await expect(warnings(page)).toHaveCount(0)
+	await page.selectOption('[name=font]', 'dejavu-serif')
+	await expect(warnings(page).filter({ hasText: 'Tahy užší' })).toHaveCount(1)
+})

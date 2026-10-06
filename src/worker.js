@@ -7,6 +7,7 @@ import { placeTris, concatTris, toSTL, to3MF, zip } from './export.js'
 
 let font = null
 let fontKey = ''
+let fontTicket = 0
 let cache = new Map()
 let cacheKey = ''
 
@@ -29,6 +30,7 @@ function getTile(params, letter, value) {
 		t = {
 			height: built.height,
 			overflow: layout.overflow,
+			thin: built.thin,
 			missing: missingChars(
 				(letter === '_' ? '' : letter) +
 					(params.showValue && (value > 0 || params.showZero) ? String(value) : '') +
@@ -98,8 +100,11 @@ function filesFor(prefix, placed, o) {
 }
 
 const handlers = {
+	// Novější požadavek na font má přednost, i když se starší dostahuje později.
 	async font({ url, buffer, key }) {
+		const ticket = ++fontTicket
 		const buf = buffer ?? (await (await fetch(url)).arrayBuffer())
+		if (ticket !== fontTicket) return { stale: true }
 		font = opentype.parse(buf)
 		fontKey = key
 		return { name: font.names.fullName?.en || font.names.fontFamily?.en || '' }
@@ -114,6 +119,7 @@ const handlers = {
 				value,
 				height: t.height,
 				overflow: t.overflow,
+				thin: t.thin,
 				missing: t.missing,
 				body: t.preview.body.slice(),
 				accent: t.preview.accent.slice(),

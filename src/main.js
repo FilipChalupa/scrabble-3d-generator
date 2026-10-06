@@ -78,24 +78,35 @@ function showCustomFontOption() {
 	form.inputs.font.value = settings.font
 }
 
+// Každé načtení fontu má pořadové číslo; dokončí-li se starší až po novějším
+// (třeba úvodní načtení po rychlé změně písma), jeho výsledek se zahodí.
+let fontSeq = 0
+
+async function setWorkerFont(payload) {
+	const seq = ++fontSeq
+	const { stale } = await call('font', payload)
+	if (stale || seq !== fontSeq) return false
+	fontKey = payload.key
+	return true
+}
+
 async function loadFont(id) {
 	setStatus(t('status.loadingFont'))
 	try {
 		if (id === 'custom') {
 			const stored = await fontStore('readonly', (s) => s.get('font')).catch(() => null)
 			if (stored) {
-				fontKey = `custom:${stored.name}:${stored.buffer.byteLength}`
-				await call('font', { buffer: stored.buffer.slice(0), key: fontKey })
-				customFontName = stored.name
-				showCustomFontOption()
+				if (await setWorkerFont({ buffer: stored.buffer.slice(0), key: `custom:${stored.name}:${stored.buffer.byteLength}` })) {
+					customFontName = stored.name
+					showCustomFontOption()
+				}
 				return
 			}
 			id = settings.font = FONTS[0].id
 			form.inputs.font.value = id
 		}
 		const def = FONTS.find((f) => f.id === id) || FONTS[0]
-		await call('font', { url: new URL(def.url, location.href).href, key: def.id })
-		fontKey = def.id
+		await setWorkerFont({ url: new URL(def.url, location.href).href, key: def.id })
 	} catch (err) {
 		setStatus(t('status.fontError', { msg: err.message }), { error: true })
 		throw err
@@ -105,9 +116,7 @@ async function loadFont(id) {
 async function useCustomFont(file) {
 	try {
 		const buffer = await file.arrayBuffer()
-		const key = `custom:${file.name}:${buffer.byteLength}`
-		await call('font', { buffer: buffer.slice(0), key })
-		fontKey = key
+		if (!(await setWorkerFont({ buffer: buffer.slice(0), key: `custom:${file.name}:${buffer.byteLength}` }))) return
 		await fontStore('readwrite', (s) => s.put({ name: file.name, buffer }, 'font')).catch(() => {})
 		customFontName = file.name
 		settings.font = 'custom'
@@ -485,6 +494,7 @@ $('select-none').addEventListener('click', () => {
 
 renderTileList()
 renderSummary()
+renderTips()
 try {
 	await loadFont(settings.font)
 	saveSettings()

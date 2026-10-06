@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { setLanguage, count, t } from '../src/i18n.js'
 import { defaults } from '../src/settings.js'
-import { slicerTips } from '../src/tips.js'
+import { slicerTips, inlayLayers } from '../src/tips.js'
 
 globalThis.document ??= { documentElement: {} }
 
@@ -47,4 +47,19 @@ test('skloňování', () => {
 		[0, 1, 2].map((n) => count(n, 'n.plates')),
 		['0 plates', '1 plate', '2 plates'],
 	)
+})
+
+test('zapuštěná písmena: dvoubarevné vrstvy a varování na tenké tahy', () => {
+	setLanguage('cs')
+	const s = { ...defaults(), style: 'inlay' }
+	assert.deepEqual(inlayLayers(s), { from: 18, to: 20, count: 3 })
+	assert.deepEqual(inlayLayers({ ...s, faceDown: true }), { from: 1, to: 3, count: 3 })
+	assert.ok(texts(slicerTips(s)).some((x) => x.includes('vrstvách 18–20')))
+	const built = [
+		{ tile: { letter: 'A' }, info: { missing: [], overflow: false, thin: { strokes: 4, gaps: 0.1 } } },
+		{ tile: { letter: 'M' }, info: { missing: [], overflow: false, thin: { strokes: 0.5, gaps: 7 } } },
+	]
+	const w = warnings(slicerTips(s, built))
+	assert.ok(w.some((x) => x.startsWith('Tahy užší') && x.includes('A') && !x.includes('M')))
+	assert.ok(w.some((x) => x.startsWith('Mezery užší') && x.includes('M')))
 })

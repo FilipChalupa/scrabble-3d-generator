@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test'
 export default defineConfig({
 	testDir: 'test/e2e',
 	timeout: 60_000,
+	expect: { timeout: 20_000 }, // stavba sady ve swiftshaderu při paralelních testech chvíli trvá
 	fullyParallel: true,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {

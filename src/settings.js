@@ -100,6 +100,7 @@ export const GROUPS = [
 		id: 'advanced',
 		advanced: true,
 		fields: [
+			{ id: 'lineWidth', type: 'number', unit: 'mm', min: 0.2, max: 1.2, step: 0.01, def: 0.42 },
 			{ id: 'gap', type: 'number', unit: 'mm', min: 0.5, max: 20, step: 0.5, def: 3 },
 			{ id: 'curveSegments', type: 'number', min: 2, max: 16, step: 1, def: 6 },
 		],
@@ -226,6 +227,7 @@ const GEOMETRY_KEYS = [
 	'curveSegments',
 	'markText',
 	'markDepth',
+	'lineWidth',
 ]
 
 // Parametry pro geometry.js (procenta převedená na podíly).

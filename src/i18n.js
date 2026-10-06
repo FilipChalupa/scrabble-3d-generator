@@ -57,6 +57,7 @@ const cs = {
 	'f.bodyColor': 'Barva kamene',
 	'f.letterColor': 'Barva písmen',
 	'f.curveSegments': 'Hladkost křivek',
+	'f.lineWidth': 'Šířka extruze',
 	'form.reset': 'Obnovit výchozí nastavení',
 
 	'ui.tile': 'Kámen',
@@ -105,6 +106,11 @@ const cs = {
 
 	'tip.missing': 'Zvolený font neobsahuje znaky {chars} – na kamenech by chyběly. Zvolte jiný font (např. DejaVu Sans).',
 	'tip.overflow': 'Přesahuje okraj kamene a bude oříznuto: {list}. Zmenšete písmeno, hodnotu či značku nebo upravte posun.',
+	'tip.inlayLayers':
+		'Dvě barvy jsou jen ve vrstvách {from}–{to} ({depth} hloubky písmen), jinde se tiskne jednou barvou. Slicer tak na každé podložce mění filament jen zhruba {n}× – čím mělčí písmena, tím méně výměn a odpadu, ale světlé barvy na tmavém podkladu mohou při malé hloubce prosvítat.',
+	'tip.thinStrokes':
+		'Tahy užší než šířka extruze {lw} mají: {list}. Slicer je nemusí vytisknout celé – zvolte tučnější písmo, větší písmena či body nebo menší šířku extruze.',
+	'tip.thinGaps': 'Mezery užší než šířka extruze {lw} mají: {list}. Mohou se při tisku slít.',
 	'tip.engraved': 'Vyrytá písmena se tisknou v jedné barvě. Pro kontrast lze prohlubně po tisku zatřít barvou nebo voskovkou.',
 	'tip.inlay':
 		'Zapuštěná písmena vyžadují vícebarevnou tiskárnu (AMS, MMU…) – kámen i písmena leží ve stejných vrstvách. Otevřete 3MF a dílům „Kámen“ a „Písmena“ přiřaďte různé filamenty.',
@@ -193,6 +199,7 @@ const en = {
 	'f.bodyColor': 'Tile colour',
 	'f.letterColor': 'Letter colour',
 	'f.curveSegments': 'Curve smoothness',
+	'f.lineWidth': 'Line width',
 	'form.reset': 'Reset to defaults',
 
 	'ui.tile': 'Tile',
@@ -242,6 +249,11 @@ const en = {
 	'tip.missing':
 		'The selected font has no {chars} – those characters would be missing from the tiles. Choose another font (e.g. DejaVu Sans).',
 	'tip.overflow': 'Reaches over the tile edge and will be cut off: {list}. Make the letter, value or mark smaller or adjust the offset.',
+	'tip.inlayLayers':
+		'Two colours are only needed in layers {from}–{to} ({depth} of letter depth); everything else prints in one colour. The slicer therefore changes filament only about {n}× per plate – shallower letters mean fewer changes and less waste, but light colours on a dark tile may show through when too thin.',
+	'tip.thinStrokes':
+		'Strokes narrower than the line width {lw}: {list}. The slicer may not print them fully – choose a bolder font, larger letters or points, or a smaller line width.',
+	'tip.thinGaps': 'Gaps narrower than the line width {lw}: {list}. They may merge when printed.',
 	'tip.engraved': 'Engraved letters print in one colour. For contrast, fill the recesses with paint or wax after printing.',
 	'tip.inlay':
 		'Flush letters need a multi-colour printer (AMS, MMU…) – tile and letters share the same layers. Open the 3MF and assign different filaments to the “Tile” and “Letters” parts.',

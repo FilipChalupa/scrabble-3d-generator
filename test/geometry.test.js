@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { opentype } from '../src/deps.js'
-import { layoutTile, buildTile, fillContours, multiPolygonArea } from '../src/geometry.js'
+import { layoutTile, buildTile, fillContours, multiPolygonArea, thinLength } from '../src/geometry.js'
 import { placeTris, toSTL, to3MF } from '../src/export.js'
 import { PRESETS, FONTS, parseTiles } from '../src/presets.js'
 
@@ -209,4 +209,72 @@ test('STL a 3MF mají správnou strukturu', async () => {
 	assert.match(model, /transform="-1 0 0 0 1 0 0 0 -1 70 10 4"/)
 	assert.equal(model.match(/<base /g).length, 2)
 	assert.match(model, /displaycolor="#000000FF"/)
+})
+
+test('thinLength najde úzké tahy a ignoruje silné tvary i ostré rohy', () => {
+	const rect = (w, h) => [
+		{
+			outer: [
+				[0, 0],
+				[w, 0],
+				[w, h],
+				[0, h],
+			],
+			holes: [],
+		},
+	]
+	assert.ok(Math.abs(thinLength(rect(10, 0.3), 0.42) - 20) < 0.6) // obě dlouhé strany
+	assert.equal(thinLength(rect(10, 1), 0.42), 0)
+	const wedge = [
+		{
+			outer: [
+				[0, 0],
+				[10, 0],
+				[0, 6],
+			],
+			holes: [],
+		},
+	] // ostrý roh ~31°, nehlásí se (užší klíny se hlásí oprávněně)
+	assert.ok(thinLength(wedge, 0.42) < 1)
+	// mezera 0,3 mm mezi dvěma bloky v doplňku (díry v obdélníku)
+	const gap = [
+		{
+			outer: [
+				[0, 0],
+				[20, 0],
+				[20, 10],
+				[0, 10],
+			],
+			holes: [
+				[
+					[2, 2],
+					[2, 8],
+					[9.85, 8],
+					[9.85, 2],
+				],
+				[
+					[10.15, 2],
+					[10.15, 8],
+					[18, 8],
+					[18, 2],
+				],
+			],
+		},
+	]
+	assert.ok(Math.abs(thinLength(gap, 0.42) - 12) < 0.6)
+})
+
+test('výchozí písmo nemá tenké tahy, patkové ano', () => {
+	const p = { ...PARAMS, style: 'inlay', lineWidth: 0.42 }
+	for (const [letter, value] of [
+		['M', 2],
+		['Ř', 4],
+		['W', 4],
+		['Q', 10],
+	]) {
+		const b = buildTile(layoutTile(fonts['dejavu-sans'], letter, value, p), p)
+		assert.ok(b.thin.strokes <= 1 && b.thin.gaps <= 1, `${letter}: ${JSON.stringify(b.thin)}`)
+	}
+	const serif = buildTile(layoutTile(fonts['dejavu-serif'], 'A', 1, p), p)
+	assert.ok(serif.thin.strokes > 1)
 })
