@@ -12,6 +12,7 @@ const cs = {
 	'g.value': 'Bodová hodnota',
 	'g.mark': 'Značka na spodku',
 	'g.print': 'Tisk',
+	'g.advanced': 'Další nastavení',
 
 	'f.preset': 'Předvolba',
 	'o.preset.custom': 'Vlastní',
@@ -147,6 +148,7 @@ const en = {
 	'g.value': 'Point value',
 	'g.mark': 'Bottom mark',
 	'g.print': 'Printing',
+	'g.advanced': 'More settings',
 
 	'f.preset': 'Preset',
 	'o.preset.custom': 'Custom',

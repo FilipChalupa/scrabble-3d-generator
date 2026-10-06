@@ -131,6 +131,30 @@ fieldset {
 	padding: 12px 0;
 }
 
+details.group {
+	border-bottom: 1px solid var(--line);
+	padding: 4px 0;
+}
+
+details.group summary {
+	cursor: pointer;
+	font-weight: 700;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--muted);
+	padding: 10px 0;
+	list-style-position: inside;
+}
+
+details.group summary:hover {
+	color: var(--accent);
+}
+
+details.group[open] {
+	padding-bottom: 12px;
+}
+
 legend {
 	font-weight: 700;
 	font-size: 0.8rem;
@@ -309,24 +333,15 @@ button:focus-visible {
 }
 
 .status {
-	position: absolute;
-	bottom: 12px;
-	left: 12px;
-	right: 12px;
-	background: var(--panel);
-	border: 1px solid var(--line);
-	padding: 6px 10px;
-	border-radius: 8px;
+	min-height: 1.5em;
+	margin-top: 8px;
 	font-size: 0.9rem;
-}
-
-.status:empty {
-	display: none;
+	color: var(--muted);
 }
 
 .status.error {
-	border-color: #c0392b;
 	color: #c0392b;
+	font-weight: 600;
 }
 
 .tiles-head {

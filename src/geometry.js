@@ -32,19 +32,32 @@ function pointInPolygon(p, poly) {
 	return inside
 }
 
-function cleanContour(c) {
-	const out = []
-	for (const p of c) {
-		const last = out[out.length - 1]
-		if (!last || Math.hypot(p[0] - last[0], p[1] - last[1]) > EPS) out.push(p)
+// Vyčistí uzavřený obrys: odstraní body bližší než tol (včetně zopakovaného
+// počátečního bodu) a s collinear: true i body na přímce a nulově široké výběžky,
+// které občas zůstanou po booleovských operacích.
+function cleanRing(ring, { tol = EPS, collinear = false } = {}) {
+	let r = ring
+	let changed = true
+	while (changed && r.length >= 3) {
+		changed = false
+		const out = []
+		for (let i = 0; i < r.length; i++) {
+			const prev = out.length ? out[out.length - 1] : r[r.length - 1]
+			const p = r[i]
+			const next = r[(i + 1) % r.length]
+			const ux = p[0] - prev[0], uy = p[1] - prev[1]
+			const vx = next[0] - p[0], vy = next[1] - p[1]
+			const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy)
+			const straight = collinear && Math.abs(ux * vy - uy * vx) < 1e-7 * lu * lv
+			if (lu < tol || (collinear && lv < tol) || straight) {
+				changed = true
+				continue
+			}
+			out.push(p)
+		}
+		r = out
 	}
-	while (out.length > 1) {
-		const a = out[0]
-		const b = out[out.length - 1]
-		if (Math.hypot(a[0] - b[0], a[1] - b[1]) > EPS) break
-		out.pop()
-	}
-	return out
+	return r
 }
 
 export function bounds(contours) {
@@ -115,7 +128,7 @@ export function textContours(font, text, size, curveSegments = 6) {
 				break
 		}
 	}
-	return contours.map(cleanContour).filter((c) => c.length >= 3 && Math.abs(signedArea(c)) > EPS)
+	return contours.map((c) => cleanRing(c)).filter((c) => c.length >= 3 && Math.abs(signedArea(c)) > EPS)
 }
 
 function capHeight(font) {
@@ -142,7 +155,7 @@ export function roundedRect(size, radius, segments = 8) {
 			pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)])
 		}
 	}
-	return cleanContour(pts)
+	return cleanRing(pts)
 }
 
 // Rozmístí písmeno a bodovou hodnotu na plochu kamene. Vrací obrysy v mm
@@ -241,33 +254,8 @@ function polygonsByParity(info, parity) {
 }
 
 const closeRing = (c) => [...c, c[0]]
-const openRing = (r) => simplifyRing(r.slice(0, -1))
+const openRing = (r) => cleanRing(r.slice(0, -1), { tol: 1e-3, collinear: true })
 
-// Odstraní téměř totožné body, body na přímce a nulově široké výběžky,
-// které po booleovských operacích občas zůstanou.
-function simplifyRing(ring, tol = 1e-3) {
-	let r = ring
-	let changed = true
-	while (changed && r.length >= 3) {
-		changed = false
-		const out = []
-		for (let i = 0; i < r.length; i++) {
-			const prev = out.length ? out[out.length - 1] : r[r.length - 1]
-			const p = r[i]
-			const next = r[(i + 1) % r.length]
-			const ux = p[0] - prev[0], uy = p[1] - prev[1]
-			const vx = next[0] - p[0], vy = next[1] - p[1]
-			const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy)
-			if (lu < tol || lv < tol || Math.abs(ux * vy - uy * vx) < 1e-7 * lu * lv) {
-				changed = true
-				continue
-			}
-			out.push(p)
-		}
-		r = out
-	}
-	return r
-}
 
 // Plné oblasti písmen a jejich doplněk v rámci obrysu kamene.
 // Glyfy se nejdřív sjednotí (překryvy písmene a hodnoty, diakritiky…) a oříznou
