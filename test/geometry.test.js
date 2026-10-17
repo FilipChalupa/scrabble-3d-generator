@@ -101,16 +101,18 @@ test('všechny kameny všech předvoleb jsou uzavřená tělesa', () => {
 test('ostatní fonty, značka na spodku a nula na žolíku', () => {
 	for (const id of Object.keys(fonts)) {
 		for (const style of ['engraved', 'raised', 'inlay']) {
-			const p = { ...PARAMS, style, markText: 'FC' }
-			for (const [letter, value] of [
-				['Ř', 4],
-				['Q', 10],
-				['_', 0],
-				['W', 4],
-				['Ů', 4],
-			]) {
-				const built = buildTile(layoutTile(fonts[id], letter, value, p), p)
-				assertSolid(built.body.concat(built.accent), `${id} ${style} ${letter}`)
+			for (const markRotate of [false, true]) {
+				const p = { ...PARAMS, style, markText: 'FC', markRotate }
+				for (const [letter, value] of [
+					['Ř', 4],
+					['Q', 10],
+					['_', 0],
+					['W', 4],
+					['Ů', 4],
+				]) {
+					const built = buildTile(layoutTile(fonts[id], letter, value, p), p)
+					assertSolid(built.body.concat(built.accent), `${id} ${style}${markRotate ? ' 45°' : ''} ${letter}`)
+				}
 			}
 		}
 	}

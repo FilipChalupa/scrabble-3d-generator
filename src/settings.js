@@ -93,6 +93,7 @@ export const GROUPS = [
 		fields: [
 			{ id: 'markText', type: 'text', help: true, def: '' },
 			{ id: 'markSize', type: 'number', unit: '%', min: 10, max: 60, step: 1, def: 30, when: (s) => s.markText.trim() },
+			{ id: 'markRotate', type: 'checkbox', def: false, when: (s) => s.markText.trim() },
 			{ id: 'markDepth', type: 'number', unit: 'mm', min: 0.1, max: 2, step: 0.04, def: 0.4, when: (s) => s.markText.trim() },
 		],
 	},
@@ -226,6 +227,7 @@ const GEOMETRY_KEYS = [
 	'valueMargin',
 	'curveSegments',
 	'markText',
+	'markRotate',
 	'markDepth',
 	'lineWidth',
 ]

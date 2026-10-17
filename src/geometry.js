@@ -221,10 +221,16 @@ export function layoutTile(font, letter, value, p) {
 	// Značka na spodku – zrcadlená, aby se při pohledu zespodu četla správně.
 	const mark = (p.markText || '').trim()
 	if (mark) {
-		const c = textContours(font, mark, (p.markSize * s) / cap, p.curveSegments)
+		let c = textContours(font, mark, (p.markSize * s) / cap, p.curveSegments)
+		// Volitelně natočená o 45° proti směru hodinových ručiček (úhlopříčka kamene je delší).
+		if (p.markRotate) {
+			const r = Math.SQRT1_2
+			c = c.map((ring) => ring.map(([x, y]) => [(x - y) * r, (x + y) * r]))
+		}
 		if (c.length) {
 			const bb = bounds(c)
-			const k = Math.min(1, (0.8 * s) / (bb.maxX - bb.minX))
+			const span = p.markRotate ? Math.max(bb.maxX - bb.minX, bb.maxY - bb.minY) : bb.maxX - bb.minX
+			const k = Math.min(1, (0.8 * s) / span)
 			const cx = ((bb.minX + bb.maxX) / 2) * k
 			const cy = ((bb.minY + bb.maxY) / 2) * k
 			out.mark = c.map((ring) => ring.map(([x, y]) => [-(x * k - cx), y * k - cy]))
@@ -366,6 +372,8 @@ function splitOnVertices(tri, pts) {
 	return out
 }
 
+const area2 = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
 function cap(out, polys, z, up) {
 	for (const { outer, holes } of polys) {
 		const all = outer.concat(...holes)
@@ -377,12 +385,14 @@ function cap(out, polys, z, up) {
 		}
 		const idx = earcut(all.flat(), holeIndices)
 		for (let i = 0; i < idx.length; i += 3) {
+			// Nulový trojúhelník (tři body obrysu na jedné přímce, např. u natočené značky)
+			// nic nepokrývá; jeho hrany pokryjí sousedé po rozdělení na vrcholech.
+			if (Math.abs(area2(all[idx[i]], all[idx[i + 1]], all[idx[i + 2]])) < 1e-12) continue
 			for (let [a, b, c] of splitOnVertices([idx[i], idx[i + 1], idx[i + 2]], all)) {
 				const pa = all[a],
 					pb = all[b],
 					pc = all[c]
-				const cross = (pb[0] - pa[0]) * (pc[1] - pa[1]) - (pb[1] - pa[1]) * (pc[0] - pa[0])
-				if (cross > 0 !== up) [b, c] = [c, b]
+				if (area2(pa, pb, pc) > 0 !== up) [b, c] = [c, b]
 				for (const v of [a, b, c]) out.push(all[v][0], all[v][1], z)
 			}
 		}
