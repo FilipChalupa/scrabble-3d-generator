@@ -55,8 +55,24 @@ Použijte provedení **vystouplá**: kámen se tiskne do své tloušťky (výcho
 Ve sliceru přidejte výměnu filamentu ve výšce první vrstvy nad tloušťkou kamene
 (PrusaSlicer: „+“ u posuvníku vrstev, Bambu/Orca: pravým tlačítkem „Add pause / filament change“).
 
-Provedení **zapuštěná v rovině** jednobarevně vytisknout nejde – písmena i kámen sdílejí stejné vrstvy,
-takže výměna filamentu by obarvila celý povrch. Provedení **vyrytá** je jednobarevné, prohlubně lze případně zatřít barvou.
+Provedení **zapuštěná v rovině** nejde vytisknout jen s jednou výměnou filamentu – písmena i kámen sdílejí stejné vrstvy.
+Jde to ale s ručními výměnami (viz níže): dvě barvy jsou jen ve vrstvách s písmeny, takže na podložku vychází jen pár výměn.
+Provedení **vyrytá** je jednobarevné, prohlubně lze případně zatřít barvou.
+
+#### Ruční výměna filamentu (Bambu Lab A1 mini bez AMS)
+
+Vícebarevný 3MF se dá na A1 mini bez AMS vytisknout tak, že tiskárna při každé výměně filamentu zastaví
+a filament vyměníte ručně. Do G-code na začátek bloku výměny (za `; CP TOOLCHANGE START` a komentáře
+`; toolchange #…` a `; material : …`) přidejte:
+
+```gcode
+M400
+M0
+```
+
+`M400` počká na dokončení pohybů a `M0` tisk pozastaví; po výměně filamentu pokračujte v tisku na tiskárně.
+Aby se to nemuselo přidávat ručně do každého souboru, dají se oba řádky vložit na začátek
+_Change filament G-code_ v nastavení tiskárny v Bambu Studiu (Printer settings → Machine G-code).
 
 Hloubku / výšku písmen volte jako násobek výšky vrstvy (např. 0,6 mm = 3 × 0,2 mm).
 
@@ -111,6 +127,8 @@ A small web app that generates **Scrabble tiles as 3D models** for 3D printing �
 - Exports `STL` and `3MF`. In the 3MF every tile is its own object made of a _Tile_ and a _Letters_ part,
   so you can assign filaments and move or delete single tiles in PrusaSlicer, Bambu Studio or OrcaSlicer.
 - Share your settings with a link, install it as a PWA.
+- No AMS (e.g. Bambu Lab A1 mini)? Add `M400` and `M0` at the start of each toolchange block in the G-code
+  (or of _Change filament G-code_ in Bambu Studio's printer settings) and the printer pauses for a manual filament swap.
 
 Development: `npm install`, then `npm start`, `npm test`, `npm run test:e2e`, `npm run lint`.
 
