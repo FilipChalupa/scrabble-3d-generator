@@ -19,6 +19,15 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-	if (event.request.mode !== 'navigate') return
-	event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE_URL)))
+	const { request } = event
+	if (request.mode === 'navigate') {
+		event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)))
+		return
+	}
+	// Vlastní soubory vždy ověřit u serveru (stačí 304). Hosting je posílá s dlouhým
+	// max-age a tvrdé obnovení stránky se nevztahuje na skripty Web Workeru – po
+	// nasazení by se jinak nová stránka potkala se starou geometrií.
+	if (request.method === 'GET' && new URL(request.url).origin === self.location.origin) {
+		event.respondWith(fetch(request, { cache: 'no-cache' }))
+	}
 })
