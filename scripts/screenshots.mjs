@@ -18,6 +18,7 @@ async function shot(file, { locale = 'cs-CZ', viewport = { width: 1280, height: 
 	await page.evaluate(() => {
 		window.scrollTo(0, 0)
 		document.querySelector('.panel').scrollTop = 0
+		document.querySelector('.stage').scrollTop = 0
 	})
 	await page.waitForTimeout(1500) // dokreslení náhledu
 	await page.screenshot({ path: `${root}docs/${file}` })
