@@ -265,6 +265,9 @@ button:focus-visible {
 	min-width: 0;
 	min-height: 0;
 	overflow: auto;
+	/* Rezerva, aby posuvný sloupec neořízl obrys vybraného kamene. */
+	padding: 6px;
+	margin: -6px;
 }
 
 .viewer-wrap {
